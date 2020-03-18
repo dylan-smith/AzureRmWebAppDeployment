@@ -3,10 +3,10 @@ export const ConnectionType = {
   AzureRM: 'AzureRM'
 }
 
-export const SiteRoot: string = '/site/wwwroot'
+export const SiteRoot = '/site/wwwroot'
 
 export const PublishProfileXml = {
-  ExcludeApp_Data: 'ExcludeApp_Data',
+  ExcludeAppData: 'ExcludeApp_Data',
   EnableMSDeployAppOffline: 'EnableMSDeployAppOffline',
   SkipExtraFilesOnServer: 'SkipExtraFilesOnServer',
   SiteUrlToLaunchAfterPublish: 'SiteUrlToLaunchAfterPublish',

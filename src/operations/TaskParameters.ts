@@ -16,9 +16,9 @@ export enum DeploymentType {
   warDeploy
 }
 
-export class TaskParametersUtility {
-  public static getParameters(): TaskParameters {
-    var taskParameters: TaskParameters = {
+export const TaskParametersUtility = {
+  getParameters(): TaskParameters {
+    const taskParameters: TaskParameters = {
       ConnectionType: core.getInput('ConnectionType', {required: true}),
       WebAppKind: core.getInput('WebAppKind'),
       DeployToSlotOrASEFlag: utility.getBoolInput('DeployToSlotOrASEFlag'),
@@ -52,14 +52,14 @@ export class TaskParametersUtility {
     )
     taskParameters.WebAppName = core.getInput('WebAppName', {required: true})
     taskParameters.isFunctionApp =
-      taskParameters.WebAppKind?.indexOf('function') != -1
+      taskParameters.WebAppKind?.indexOf('function') !== -1
     taskParameters.isLinuxApp =
-      taskParameters.WebAppKind?.indexOf('Linux') != -1 ||
-      taskParameters.WebAppKind?.indexOf('Container') != -1
+      taskParameters.WebAppKind?.indexOf('Linux') !== -1 ||
+      taskParameters.WebAppKind?.indexOf('Container') !== -1
     taskParameters.isBuiltinLinuxWebApp =
-      taskParameters.WebAppKind?.indexOf('Linux') != -1
+      taskParameters.WebAppKind?.indexOf('Linux') !== -1
     taskParameters.isContainerWebApp =
-      taskParameters.WebAppKind?.indexOf('Container') != -1
+      taskParameters.WebAppKind?.indexOf('Container') !== -1
     taskParameters.ResourceGroupName = taskParameters.DeployToSlotOrASEFlag
       ? core.getInput('ResourceGroupName')
       : undefined
@@ -67,19 +67,12 @@ export class TaskParametersUtility {
       ? core.getInput('SlotName')
       : undefined
 
-    var endpointTelemetry =
-      '{"endpointId":"' + taskParameters.connectedServiceName + '"}'
-    console.log(
-      '##vso[telemetry.publish area=TaskEndpointId;feature=AzureRmWebAppDeployment]' +
-        endpointTelemetry
-    )
-
     if (!taskParameters.isContainerWebApp) {
       taskParameters.Package = new Package(
         utility.getPathInput('Package', {required: true})
       )
       core.debug(
-        'intially web config parameters :' + taskParameters.WebConfigParameters
+        `intially web config parameters :${taskParameters.WebConfigParameters}`
       )
       if (
         taskParameters.Package.getPackageType() === PackageType.jar &&
@@ -89,36 +82,34 @@ export class TaskParametersUtility {
           taskParameters.WebConfigParameters = '-appType java_springboot'
         }
         if (
-          taskParameters.WebConfigParameters.indexOf(
+          !taskParameters.WebConfigParameters.includes(
             '-appType java_springboot'
-          ) < 0
+          )
         ) {
           taskParameters.WebConfigParameters += ' -appType java_springboot'
         }
         if (
-          taskParameters.WebConfigParameters.indexOf(
+          taskParameters.WebConfigParameters.includes(
             '-JAR_PATH D:\\home\\site\\wwwroot\\*.jar'
-          ) >= 0
+          )
         ) {
-          var jarPath = utility.getFileNameFromPath(
+          const jarPath = utility.getFileNameFromPath(
             taskParameters.Package.getPath()
           )
           taskParameters.WebConfigParameters = taskParameters.WebConfigParameters.replace(
             'D:\\home\\site\\wwwroot\\*.jar',
             jarPath
           )
-        } else if (
-          taskParameters.WebConfigParameters.indexOf('-JAR_PATH ') < 0
-        ) {
-          var jarPath = utility.getFileNameFromPath(
+        } else if (!taskParameters.WebConfigParameters.includes('-JAR_PATH ')) {
+          const jarPath = utility.getFileNameFromPath(
             taskParameters.Package.getPath()
           )
-          taskParameters.WebConfigParameters += ' -JAR_PATH ' + jarPath
+          taskParameters.WebConfigParameters += ` -JAR_PATH ${jarPath}`
         }
         if (
-          taskParameters.WebConfigParameters.indexOf(
+          taskParameters.WebConfigParameters.includes(
             '-Dserver.port=%HTTP_PLATFORM_PORT%'
-          ) > 0
+          )
         ) {
           taskParameters.WebConfigParameters = taskParameters.WebConfigParameters.replace(
             '-Dserver.port=%HTTP_PLATFORM_PORT%',
@@ -126,7 +117,7 @@ export class TaskParametersUtility {
           )
         }
         core.debug(
-          'web config parameters :' + taskParameters.WebConfigParameters
+          `web config parameters :${taskParameters.WebConfigParameters}`
         )
       }
     }
@@ -157,7 +148,7 @@ export class TaskParametersUtility {
       taskParameters.DeploymentType = this.getDeploymentType(
         core.getInput('DeploymentType')
       )
-      if (taskParameters.DeploymentType == DeploymentType.webDeploy) {
+      if (taskParameters.DeploymentType === DeploymentType.webDeploy) {
         taskParameters.RemoveAdditionalFilesFlag = utility.getBoolInput(
           'RemoveAdditionalFilesFlag'
         )
@@ -181,9 +172,9 @@ export class TaskParametersUtility {
     }
 
     return taskParameters
-  }
+  },
 
-  private static _initializeDefaultParametersForPublishProfile(
+  _initializeDefaultParametersForPublishProfile(
     taskParameters: TaskParameters
   ): void {
     taskParameters.PublishProfilePath = core.getInput('PublishProfilePath', {
@@ -197,13 +188,13 @@ export class TaskParametersUtility {
       utility.getPathInput('Package', {required: true})
     )
     taskParameters.AdditionalArguments = '-retryAttempts:6 -retryInterval:10000'
-  }
+  },
 
-  private static UpdateLinuxAppTypeScriptParameters(
-    taskParameters: TaskParameters
-  ) {
-    let retryTimeoutValue = utility.getVariable('appservicedeploy.retrytimeout')
-    let timeoutAppSettings = retryTimeoutValue
+  UpdateLinuxAppTypeScriptParameters(taskParameters: TaskParameters) {
+    const retryTimeoutValue = utility.getVariable(
+      'appservicedeploy.retrytimeout'
+    )
+    const timeoutAppSettings = retryTimeoutValue
       ? Number(retryTimeoutValue) * 60
       : 1800
 
@@ -211,15 +202,13 @@ export class TaskParametersUtility {
       `setting app setting SCM_COMMAND_IDLE_TIMEOUT to ${timeoutAppSettings}`
     )
     if (taskParameters.AppSettings) {
-      taskParameters.AppSettings =
-        `-SCM_COMMAND_IDLE_TIMEOUT ${timeoutAppSettings} ` +
-        taskParameters.AppSettings
+      taskParameters.AppSettings = `-SCM_COMMAND_IDLE_TIMEOUT ${timeoutAppSettings} ${taskParameters.AppSettings}`
     } else {
       taskParameters.AppSettings = `-SCM_COMMAND_IDLE_TIMEOUT ${timeoutAppSettings}`
     }
-  }
+  },
 
-  private static getDeploymentType(type: string): DeploymentType {
+  getDeploymentType(type: string): DeploymentType {
     switch (type) {
       case 'webDeploy':
         return DeploymentType.webDeploy

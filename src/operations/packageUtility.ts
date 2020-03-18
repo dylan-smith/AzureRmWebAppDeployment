@@ -7,6 +7,7 @@ import * as utility from './ActionUtility'
 import * as util from 'util'
 import * as core from '@actions/core'
 import * as zipUtility from './zipUtility'
+import * as fs from 'fs'
 
 export enum PackageType {
   war,
@@ -15,10 +16,10 @@ export enum PackageType {
   folder
 }
 
-export class PackageUtility {
-  public static getPackagePath(packagePath: string): string {
-    var availablePackages: string[] = utility.findfiles(packagePath)
-    if (availablePackages.length == 0) {
+export const PackageUtility = {
+  getPackagePath(packagePath: string): string {
+    const availablePackages: string[] = utility.findfiles(packagePath)
+    if (availablePackages.length === 0) {
       throw new Error(
         util.format(
           'No package found with specified pattern: %s<br/>Check if the package mentioned in the task is published as an artifact in the build or a previous stage and downloaded in the current job.',
@@ -46,36 +47,36 @@ export class Package {
     this._isMSBuildPackage = undefined
   }
 
-  public getPath(): string {
+  getPath(): string {
     return this._path
   }
 
-  public async isMSBuildPackage(): Promise<boolean> {
-    if (this._isMSBuildPackage == undefined) {
+  async isMSBuildPackage(): Promise<boolean> {
+    if (this._isMSBuildPackage === undefined) {
       this._isMSBuildPackage = false
-      if (this.getPackageType() != PackageType.folder) {
-        var pacakgeComponent = await zipUtility.getArchivedEntries(this._path)
+      if (this.getPackageType() !== PackageType.folder) {
+        const packageComponent = await zipUtility.getArchivedEntries(this._path)
         if (
-          (pacakgeComponent['entries'].indexOf('parameters.xml') > -1 ||
-            pacakgeComponent['entries'].indexOf('Parameters.xml') > -1) &&
-          (pacakgeComponent['entries'].indexOf('systemInfo.xml') > -1 ||
-            pacakgeComponent['entries'].indexOf('systeminfo.xml') > -1 ||
-            pacakgeComponent['entries'].indexOf('SystemInfo.xml') > -1)
+          (packageComponent['entries'].includes('parameters.xml') ||
+            packageComponent['entries'].includes('Parameters.xml')) &&
+          (packageComponent['entries'].includes('systemInfo.xml') ||
+            packageComponent['entries'].includes('systeminfo.xml') ||
+            packageComponent['entries'].includes('SystemInfo.xml'))
         ) {
           this._isMSBuildPackage = true
         }
       }
 
       core.debug(
-        'Is the package an msdeploy package : ' + this._isMSBuildPackage
+        `Is the package an msdeploy package : ${this._isMSBuildPackage}`
       )
     }
 
     return this._isMSBuildPackage
   }
 
-  public getPackageType(): PackageType {
-    if (this._packageType == undefined) {
+  getPackageType(): PackageType {
+    if (this._packageType === undefined) {
       if (!utility.exist(this._path)) {
         throw new Error(
           util.format(this, [
@@ -93,7 +94,7 @@ export class Package {
         } else if (this._path.toLowerCase().endsWith('.zip')) {
           this._packageType = PackageType.zip
           core.debug('This is zip package ')
-        } else if (!utility.stats(this._path).isFile()) {
+        } else if (!fs.statSync(this._path).isFile()) {
           this._packageType = PackageType.folder
           core.debug('This is folder package ')
         } else {
@@ -109,8 +110,8 @@ export class Package {
     return this._packageType
   }
 
-  public isFolder(): boolean {
-    if (this._isFolder == undefined) {
+  isFolder(): boolean {
+    if (this._isFolder === undefined) {
       if (!utility.exist(this._path)) {
         throw new Error(
           util.format(
@@ -120,7 +121,7 @@ export class Package {
         )
       }
 
-      this._isFolder = !utility.stats(this._path).isFile()
+      this._isFolder = !fs.statSync(this._path).isFile()
     }
 
     return this._isFolder

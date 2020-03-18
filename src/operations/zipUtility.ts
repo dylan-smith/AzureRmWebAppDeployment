@@ -14,20 +14,21 @@ import * as archiver from 'archiver'
 //var DecompressZip = require('decompress-zip');
 //var archiver = require('archiver');
 
-export async function unzip(zipLocation: string, unzipLocation: string) {
-  var defer = Q.defer()
+export async function unzip(
+  zipLocation: string,
+  unzipLocation: string
+): Promise<string> {
+  const defer = Q.defer<string>()
   if (utility.exist(unzipLocation)) {
     utility.rmRF(unzipLocation)
   }
-  var unzipper = new DecompressZip(zipLocation)
-  core.debug('extracting ' + zipLocation + ' to ' + unzipLocation)
-  unzipper.on('error', function(error: any) {
+  const unzipper = new DecompressZip(zipLocation)
+  core.debug(`extracting ${zipLocation} to ${unzipLocation}`)
+  unzipper.on('error', function(error: Error) {
     defer.reject(error)
   })
   unzipper.on('extract', function() {
-    core.debug(
-      'extracted ' + zipLocation + ' to ' + unzipLocation + ' Successfully'
-    )
+    core.debug(`extracted ${zipLocation} to ${unzipLocation} Successfully`)
     defer.resolve(unzipLocation)
   })
   unzipper.extract({
@@ -40,14 +41,14 @@ export async function archiveFolder(
   folderPath: string,
   targetPath: string,
   zipName: string
-) {
-  var defer = Q.defer()
-  core.debug('Archiving ' + folderPath + ' to ' + zipName)
-  var outputZipPath = path.join(targetPath, zipName)
-  var output = fs.createWriteStream(outputZipPath)
-  var archive = archiver('zip')
+): Promise<string> {
+  const defer = Q.defer<string>()
+  core.debug(`Archiving ${folderPath} to ${zipName}`)
+  const outputZipPath = path.join(targetPath, zipName)
+  const output = fs.createWriteStream(outputZipPath)
+  const archive = archiver('zip')
   output.on('close', function() {
-    core.debug('Successfully created archive ' + zipName)
+    core.debug(`Successfully created archive ${zipName}`)
     defer.resolve(outputZipPath)
   })
 
@@ -63,7 +64,7 @@ export async function archiveFolder(
 }
 
 export interface ArchivedEntries {
-  entries: any
+  entries: string[]
 }
 
 /**
@@ -72,13 +73,13 @@ export interface ArchivedEntries {
 export async function getArchivedEntries(
   archivedPackage: string
 ): Promise<ArchivedEntries> {
-  var deferred: Q.Deferred<ArchivedEntries> = Q.defer()
-  var unzipper = new DecompressZip(archivedPackage)
-  unzipper.on('error', function(error: any) {
+  const deferred: Q.Deferred<ArchivedEntries> = Q.defer()
+  const unzipper = new DecompressZip(archivedPackage)
+  unzipper.on('error', function(error: Error) {
     deferred.reject(error)
   })
-  unzipper.on('list', function(files: any) {
-    var packageComponent: ArchivedEntries = {
+  unzipper.on('list', function(files: string[]) {
+    const packageComponent: ArchivedEntries = {
       entries: files
     }
     deferred.resolve(packageComponent)
