@@ -33,7 +33,7 @@ async function run(): Promise<void> {
     //tl.debug("Deployment Failed with Error: " + error);
     //isDeploymentSuccess = false;
     //tl.setResult(tl.TaskResult.Failed, error);
-    core.error(error)
+    core.error(typeof error)
   } finally {
     //if(deploymentProvider != null) {
     //    await deploymentProvider.UpdateDeploymentStatus(isDeploymentSuccess);
