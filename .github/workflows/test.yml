@@ -21,3 +21,4 @@ jobs:
     - uses: ./
       with: 
         WebAppName: 'dylan'
+        ConnectedServiceName: 'Azure MVP'

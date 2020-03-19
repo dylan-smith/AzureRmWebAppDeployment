@@ -9,6 +9,9 @@ inputs:
   WebAppName:
     description: 'App Service Name (Only relevant when connection-type is set to AzureRM'
     required: false
+  ConnectedServiceName:
+    description: 'This needs to be replaced with credentials'
+    required: false
 
 outputs:
   app-service-url:
