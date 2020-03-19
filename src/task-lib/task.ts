@@ -6,6 +6,7 @@ import * as path from 'path'
 import * as minimatch from 'minimatch'
 import * as childProcess from 'child_process'
 import * as shell from 'shelljs'
+import * as trm from './toolrunner'
 
 export const getVariable = im._getVariable
 export const exist = im._exist
@@ -574,4 +575,49 @@ export enum Platform {
   Windows,
   MacOS,
   Linux
+}
+
+/**
+ * Exec a tool.  Convenience wrapper over ToolRunner to exec with args in one call.
+ * Output will be streamed to the live console.
+ * Returns promise with return code
+ *
+ * @param     tool     path to tool to exec
+ * @param     args     an arg string or array of args
+ * @param     options  optional exec options.  See IExecOptions
+ * @returns   number
+ */
+export function exec(
+  tool: string,
+  args: any,
+  options?: trm.IExecOptions
+): Q.Promise<number> {
+  let tr: trm.ToolRunner = createToolRunner(tool)
+  tr.on('debug', (data: string) => {
+    core.debug(data)
+  })
+
+  if (args) {
+    if (args instanceof Array) {
+      tr.arg(args)
+    } else if (typeof args === 'string') {
+      tr.line(args)
+    }
+  }
+  return tr.exec(options)
+}
+
+/**
+ * Convenience factory to create a ToolRunner.
+ *
+ * @param     tool     path to tool to exec
+ * @returns   ToolRunner
+ */
+export function createToolRunner(tool: string): trm.ToolRunner {
+  let tr: trm.ToolRunner = new trm.ToolRunner(tool)
+  tr.on('debug', (message: string) => {
+    core.debug(message)
+  })
+
+  return tr
 }

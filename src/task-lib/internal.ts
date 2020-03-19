@@ -123,3 +123,198 @@ export function _getVariableKey(name: string): string {
     .replace(/ /g, '_')
     .toUpperCase()
 }
+
+/**
+ * Returns path of a tool had the tool actually been invoked.  Resolves via paths.
+ * If you check and the tool does not exist, it will throw.
+ *
+ * @param     tool       name of the tool
+ * @param     check      whether to check if tool exists
+ * @returns   string
+ */
+export function _which(tool: string, check?: boolean): string {
+  if (!tool) {
+    throw new Error("parameter 'tool' is required")
+  }
+
+  // recursive when check=true
+  if (check) {
+    let result: string = _which(tool, false)
+    if (result) {
+      return result
+    } else {
+      if (process.platform == 'win32') {
+        throw new Error(
+          util.format(
+            "Unable to locate executable file: '%s'. Please verify either the file path exists or the file can be found within a directory specified by the PATH environment variable. Also verify the file has a valid extension for an executable file.",
+            tool
+          )
+        )
+      } else {
+        throw new Error(
+          util.format(
+            "Unable to locate executable file: '%s'. Please verify either the file path exists or the file can be found within a directory specified by the PATH environment variable. Also check the file mode to verify the file is executable.",
+            tool
+          )
+        )
+      }
+    }
+  }
+
+  core.debug(`which '${tool}'`)
+  try {
+    // build the list of extensions to try
+    let extensions: string[] = []
+    if (process.platform == 'win32' && process.env['PATHEXT']) {
+      for (let extension of process.env['PATHEXT'].split(path.delimiter)) {
+        if (extension) {
+          extensions.push(extension)
+        }
+      }
+    }
+
+    // if it's rooted, return it if exists. otherwise return empty.
+    if (_isRooted(tool)) {
+      let filePath: string = _tryGetExecutablePath(tool, extensions)
+      if (filePath) {
+        core.debug(`found: '${filePath}'`)
+        return filePath
+      }
+
+      core.debug('not found')
+      return ''
+    }
+
+    // if any path separators, return empty
+    if (
+      tool.indexOf('/') >= 0 ||
+      (process.platform == 'win32' && tool.indexOf('\\') >= 0)
+    ) {
+      core.debug('not found')
+      return ''
+    }
+
+    // build the list of directories
+    //
+    // Note, technically "where" checks the current directory on Windows. From a task lib perspective,
+    // it feels like we should not do this. Checking the current directory seems like more of a use
+    // case of a shell, and the which() function exposed by the task lib should strive for consistency
+    // across platforms.
+    let directories: string[] = []
+    if (process.env['PATH']) {
+      for (let p of process.env['PATH'].split(path.delimiter)) {
+        if (p) {
+          directories.push(p)
+        }
+      }
+    }
+
+    // return the first match
+    for (let directory of directories) {
+      let filePath = _tryGetExecutablePath(
+        directory + path.sep + tool,
+        extensions
+      )
+      if (filePath) {
+        core.debug(`found: '${filePath}'`)
+        return filePath
+      }
+    }
+
+    core.debug('not found')
+    return ''
+  } catch (err) {
+    throw new Error(util.format('Failed %s: %s', 'which', err.message))
+  }
+}
+
+/**
+ * Best effort attempt to determine whether a file exists and is executable.
+ * @param filePath    file path to check
+ * @param extensions  additional file extensions to try
+ * @return if file exists and is executable, returns the file path. otherwise empty string.
+ */
+function _tryGetExecutablePath(filePath: string, extensions: string[]): string {
+  try {
+    // test file exists
+    let stats: fs.Stats = fs.statSync(filePath)
+    if (stats.isFile()) {
+      if (process.platform == 'win32') {
+        // on Windows, test for valid extension
+        let isExecutable = false
+        let fileName = path.basename(filePath)
+        let dotIndex = fileName.lastIndexOf('.')
+        if (dotIndex >= 0) {
+          let upperExt = fileName.substr(dotIndex).toUpperCase()
+          if (extensions.some(validExt => validExt.toUpperCase() == upperExt)) {
+            return filePath
+          }
+        }
+      } else {
+        if (isUnixExecutable(stats)) {
+          return filePath
+        }
+      }
+    }
+  } catch (err) {
+    if (err.code != 'ENOENT') {
+      core.debug(
+        `Unexpected error attempting to determine if executable file exists '${filePath}': ${err}`
+      )
+    }
+  }
+
+  // try each extension
+  let originalFilePath = filePath
+  for (let extension of extensions) {
+    let found = false
+    let filePath = originalFilePath + extension
+    try {
+      let stats: fs.Stats = fs.statSync(filePath)
+      if (stats.isFile()) {
+        if (process.platform == 'win32') {
+          // preserve the case of the actual file (since an extension was appended)
+          try {
+            let directory = path.dirname(filePath)
+            let upperName = path.basename(filePath).toUpperCase()
+            for (let actualName of fs.readdirSync(directory)) {
+              if (upperName == actualName.toUpperCase()) {
+                filePath = path.join(directory, actualName)
+                break
+              }
+            }
+          } catch (err) {
+            core.debug(
+              `Unexpected error attempting to determine the actual case of the file '${filePath}': ${err}`
+            )
+          }
+
+          return filePath
+        } else {
+          if (isUnixExecutable(stats)) {
+            return filePath
+          }
+        }
+      }
+    } catch (err) {
+      if (err.code != 'ENOENT') {
+        core.debug(
+          `Unexpected error attempting to determine if executable file exists '${filePath}': ${err}`
+        )
+      }
+    }
+  }
+
+  return ''
+}
+
+// on Mac/Linux, test the execute bit
+//     R   W  X  R  W X R W X
+//   256 128 64 32 16 8 4 2 1
+function isUnixExecutable(stats: fs.Stats) {
+  return (
+    (stats.mode & 1) > 0 ||
+    ((stats.mode & 8) > 0 && stats.gid === process.getgid()) ||
+    ((stats.mode & 64) > 0 && stats.uid === process.getuid())
+  )
+}

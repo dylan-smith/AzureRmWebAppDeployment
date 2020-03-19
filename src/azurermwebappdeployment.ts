@@ -4,7 +4,7 @@ import {
   TaskParameters,
   TaskParametersUtility
 } from './operations/TaskParameters'
-//import { DeploymentFactory } from './deploymentProvider/DeploymentFactory';
+import {DeploymentFactory} from './deploymentProvider/DeploymentFactory'
 //import * as Endpoint from 'azure-arm-rest-v2/azure-arm-endpoint';
 
 import * as core from '@actions/core'
@@ -19,7 +19,9 @@ async function run(): Promise<void> {
     //tl.setResourcePath(path.join( __dirname, 'node_modules/azure-arm-rest-v2/module.json'));
     //tl.setResourcePath(path.join( __dirname, 'node_modules/webdeployment-common-v2/module.json'));
     const taskParams: TaskParameters = TaskParametersUtility.getParameters()
-    //var deploymentFactory: DeploymentFactory = new DeploymentFactory(taskParams);
+    const deploymentFactory: DeploymentFactory = new DeploymentFactory(
+      taskParams
+    )
     //var deploymentProvider = await deploymentFactory.GetDeploymentProvider();
 
     core.info(`got past ${taskParams.ConnectionType}`)
