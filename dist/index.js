@@ -25119,6 +25119,7 @@ function run() {
             //tl.debug("Deployment Failed with Error: " + error);
             //isDeploymentSuccess = false;
             //tl.setResult(tl.TaskResult.Failed, error);
+            core.error(error);
         }
         finally {
             //if(deploymentProvider != null) {
