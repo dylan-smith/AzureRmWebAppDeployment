@@ -22,7 +22,7 @@ async function run(): Promise<void> {
     //var deploymentFactory: DeploymentFactory = new DeploymentFactory(taskParams);
     //var deploymentProvider = await deploymentFactory.GetDeploymentProvider();
 
-    core.info(`hello ${taskParams.ConnectionType}`)
+    core.info(`got past ${taskParams.ConnectionType}`)
 
     //tl.debug("Predeployment Step Started");
     //await deploymentProvider.PreDeploymentStep();
@@ -33,7 +33,7 @@ async function run(): Promise<void> {
     //tl.debug("Deployment Failed with Error: " + error);
     //isDeploymentSuccess = false;
     //tl.setResult(tl.TaskResult.Failed, error);
-    core.info("error happened")
+    core.setFailed(error.message)
   } finally {
     //if(deploymentProvider != null) {
     //    await deploymentProvider.UpdateDeploymentStatus(isDeploymentSuccess);
