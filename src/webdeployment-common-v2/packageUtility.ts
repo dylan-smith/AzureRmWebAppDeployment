@@ -3,11 +3,12 @@
 //var zipUtility = require('webdeployment-common-v2/ziputility.js');
 //import path = require('path');
 
-import * as utility from './ActionUtility'
+import * as utility from './utility'
 import * as util from 'util'
 import * as core from '@actions/core'
 import * as zipUtility from './zipUtility'
 import * as fs from 'fs'
+import * as tl from '../task-lib/task'
 
 export enum PackageType {
   war,
@@ -77,7 +78,7 @@ export class Package {
 
   getPackageType(): PackageType {
     if (this._packageType === undefined) {
-      if (!utility.exist(this._path)) {
+      if (!tl.exist(this._path)) {
         throw new Error(
           util.format(this, [
             'Invalid App Service package or folder path provided: %s',
@@ -112,7 +113,7 @@ export class Package {
 
   isFolder(): boolean {
     if (this._isFolder === undefined) {
-      if (!utility.exist(this._path)) {
+      if (!tl.exist(this._path)) {
         throw new Error(
           util.format(
             'Invalid App Service package or folder path provided: %s',

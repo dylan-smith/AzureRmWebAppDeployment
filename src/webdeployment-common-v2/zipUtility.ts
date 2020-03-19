@@ -1,26 +1,18 @@
-//import tl = require('azure-pipelines-task-lib/task');
-//import path = require('path');
-//import Q = require('q');
-//import fs = require('fs');
-
-import * as utility from './ActionUtility'
 import * as Q from 'q'
 import * as core from '@actions/core'
 import * as path from 'path'
 import * as fs from 'fs'
 import * as DecompressZip from 'decompress-zip'
 import * as archiver from 'archiver'
-
-//var DecompressZip = require('decompress-zip');
-//var archiver = require('archiver');
+import * as tl from '../task-lib/task'
 
 export async function unzip(
   zipLocation: string,
   unzipLocation: string
 ): Promise<string> {
   const defer = Q.defer<string>()
-  if (utility.exist(unzipLocation)) {
-    utility.rmRF(unzipLocation)
+  if (tl.exist(unzipLocation)) {
+    tl.rmRF(unzipLocation)
   }
   const unzipper = new DecompressZip(zipLocation)
   core.debug(`extracting ${zipLocation} to ${unzipLocation}`)

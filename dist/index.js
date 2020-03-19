@@ -2166,10 +2166,11 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const core = __importStar(__webpack_require__(470));
-const utility = __importStar(__webpack_require__(884));
 const Constant = __importStar(__webpack_require__(895));
 const packageUtility_1 = __webpack_require__(263);
 const util = __importStar(__webpack_require__(669));
+const tl = __importStar(__webpack_require__(184));
+const webCommonUtility = __importStar(__webpack_require__(876));
 var DeploymentType;
 (function (DeploymentType) {
     DeploymentType[DeploymentType["webDeploy"] = 0] = "webDeploy";
@@ -2183,18 +2184,18 @@ exports.TaskParametersUtility = {
         const taskParameters = {
             ConnectionType: core.getInput('ConnectionType', { required: true }),
             WebAppKind: core.getInput('WebAppKind'),
-            DeployToSlotOrASEFlag: utility.getBoolInput('DeployToSlotOrASEFlag'),
-            GenerateWebConfig: utility.getBoolInput('GenerateWebConfig'),
+            DeployToSlotOrASEFlag: tl.getBoolInput('DeployToSlotOrASEFlag'),
+            GenerateWebConfig: tl.getBoolInput('GenerateWebConfig'),
             WebConfigParameters: core.getInput('WebConfigParameters'),
-            XmlTransformation: utility.getBoolInput('XmlTransformation'),
-            JSONFiles: utility.getDelimitedInput('JSONFiles', '\n'),
-            XmlVariableSubstitution: utility.getBoolInput('XmlVariableSubstitution'),
-            TakeAppOfflineFlag: utility.getBoolInput('TakeAppOfflineFlag'),
-            RenameFilesFlag: utility.getBoolInput('RenameFilesFlag'),
+            XmlTransformation: tl.getBoolInput('XmlTransformation'),
+            JSONFiles: tl.getDelimitedInput('JSONFiles', '\n'),
+            XmlVariableSubstitution: tl.getBoolInput('XmlVariableSubstitution'),
+            TakeAppOfflineFlag: tl.getBoolInput('TakeAppOfflineFlag'),
+            RenameFilesFlag: tl.getBoolInput('RenameFilesFlag'),
             AdditionalArguments: core.getInput('AdditionalArguments'),
             ScriptType: core.getInput('ScriptType'),
             InlineScript: core.getInput('InlineScript'),
-            ScriptPath: utility.getPathInput('ScriptPath'),
+            ScriptPath: tl.getPathInput('ScriptPath'),
             DockerNamespace: core.getInput('DockerNamespace'),
             AppSettings: core.getInput('AppSettings'),
             StartupCommand: core.getInput('StartupCommand'),
@@ -2222,7 +2223,7 @@ exports.TaskParametersUtility = {
             ? core.getInput('SlotName')
             : undefined;
         if (!taskParameters.isContainerWebApp) {
-            taskParameters.Package = new packageUtility_1.Package(utility.getPathInput('Package', { required: true }));
+            taskParameters.Package = new packageUtility_1.Package(tl.getPathInput('Package', { required: true }));
             core.debug(`intially web config parameters :${taskParameters.WebConfigParameters}`);
             if (taskParameters.Package.getPackageType() === packageUtility_1.PackageType.jar &&
                 !taskParameters.isLinuxApp) {
@@ -2233,11 +2234,11 @@ exports.TaskParametersUtility = {
                     taskParameters.WebConfigParameters += ' -appType java_springboot';
                 }
                 if (taskParameters.WebConfigParameters.includes('-JAR_PATH D:\\home\\site\\wwwroot\\*.jar')) {
-                    const jarPath = utility.getFileNameFromPath(taskParameters.Package.getPath());
+                    const jarPath = webCommonUtility.getFileNameFromPath(taskParameters.Package.getPath());
                     taskParameters.WebConfigParameters = taskParameters.WebConfigParameters.replace('D:\\home\\site\\wwwroot\\*.jar', jarPath);
                 }
                 else if (!taskParameters.WebConfigParameters.includes('-JAR_PATH ')) {
-                    const jarPath = utility.getFileNameFromPath(taskParameters.Package.getPath());
+                    const jarPath = webCommonUtility.getFileNameFromPath(taskParameters.Package.getPath());
                     taskParameters.WebConfigParameters += ` -JAR_PATH ${jarPath}`;
                 }
                 if (taskParameters.WebConfigParameters.includes('-Dserver.port=%HTTP_PLATFORM_PORT%')) {
@@ -2247,7 +2248,7 @@ exports.TaskParametersUtility = {
             }
         }
         taskParameters.UseWebDeploy = !taskParameters.isLinuxApp
-            ? utility.getBoolInput('UseWebDeploy')
+            ? tl.getBoolInput('UseWebDeploy')
             : false;
         if (taskParameters.isLinuxApp && taskParameters.isBuiltinLinuxWebApp) {
             if (taskParameters.isFunctionApp) {
@@ -2269,9 +2270,9 @@ exports.TaskParametersUtility = {
         if (taskParameters.UseWebDeploy) {
             taskParameters.DeploymentType = this.getDeploymentType(core.getInput('DeploymentType'));
             if (taskParameters.DeploymentType === DeploymentType.webDeploy) {
-                taskParameters.RemoveAdditionalFilesFlag = utility.getBoolInput('RemoveAdditionalFilesFlag');
-                taskParameters.SetParametersFile = utility.getPathInput('SetParametersFile');
-                taskParameters.ExcludeFilesFromAppDataFlag = utility.getBoolInput('ExcludeFilesFromAppDataFlag');
+                taskParameters.RemoveAdditionalFilesFlag = tl.getBoolInput('RemoveAdditionalFilesFlag');
+                taskParameters.SetParametersFile = tl.getPathInput('SetParametersFile');
+                taskParameters.ExcludeFilesFromAppDataFlag = tl.getBoolInput('ExcludeFilesFromAppDataFlag');
                 taskParameters.AdditionalArguments =
                     core.getInput('AdditionalArguments') || '';
             }
@@ -2291,11 +2292,11 @@ exports.TaskParametersUtility = {
             required: true
         });
         taskParameters.PublishProfilePassword = core.getInput('PublishProfilePassword', { required: true });
-        taskParameters.Package = new packageUtility_1.Package(utility.getPathInput('Package', { required: true }));
+        taskParameters.Package = new packageUtility_1.Package(tl.getPathInput('Package', { required: true }));
         taskParameters.AdditionalArguments = '-retryAttempts:6 -retryInterval:10000';
     },
     UpdateLinuxAppTypeScriptParameters(taskParameters) {
-        const retryTimeoutValue = utility.getVariable('appservicedeploy.retrytimeout');
+        const retryTimeoutValue = tl.getVariable('appservicedeploy.retrytimeout');
         const timeoutAppSettings = retryTimeoutValue
             ? Number(retryTimeoutValue) * 60
             : 1800;
@@ -8509,7 +8510,493 @@ if (process.env.READABLE_STREAM === 'disable' && Stream) {
 
 
 /***/ }),
-/* 184 */,
+/* 184 */
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
+    result["default"] = mod;
+    return result;
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const core = __importStar(__webpack_require__(470));
+const im = __importStar(__webpack_require__(409));
+const fs = __importStar(__webpack_require__(747));
+const util = __importStar(__webpack_require__(669));
+const path = __importStar(__webpack_require__(622));
+const minimatch = __importStar(__webpack_require__(93));
+const childProcess = __importStar(__webpack_require__(129));
+const shell = __importStar(__webpack_require__(739));
+exports.getVariable = im._getVariable;
+exports.exist = im._exist;
+/**
+ * Gets the value of an input and converts to a bool.  Convenience.
+ * If required is true and the value is not set, it will throw.
+ * If required is false and the value is not set, returns false.
+ *
+ * @param     name     name of the bool input to get
+ * @param     options  whether input is required.  optional, defaults to false
+ * @returns   boolean
+ */
+function getBoolInput(name, options) {
+    return (core.getInput(name, options) || '').toUpperCase() === 'TRUE';
+}
+exports.getBoolInput = getBoolInput;
+/**
+ * Gets the value of a path input
+ * It will be quoted for you if it isn't already and contains spaces
+ * If required is true and the value is not set, it will throw.
+ * If check is true and the path does not exist, it will throw.
+ *
+ * @param     name      name of the input to get
+ * @param     options   whether input is required.  optional, defaults to false
+ * @param     check     whether path is checked.  optional, defaults to false
+ * @returns   string
+ */
+function getPathInput(name, options, check) {
+    const inval = core.getInput(name, options);
+    if (inval) {
+        if (check) {
+            im._checkPath(inval, name);
+        }
+    }
+    return inval;
+}
+exports.getPathInput = getPathInput;
+/**
+ * Gets the value of an input and splits the value using a delimiter (space, comma, etc).
+ * Empty values are removed.  This function is useful for splitting an input containing a simple
+ * list of items - such as build targets.
+ * IMPORTANT: Do not use this function for splitting additional args!  Instead use argString(), which
+ * follows normal argument splitting rules and handles values encapsulated by quotes.
+ * If required is true and the value is not set, it will throw.
+ *
+ * @param     name     name of the input to get
+ * @param     delim    delimiter to split on
+ * @param     required whether input is required.  optional, defaults to false
+ * @returns   string[]
+ */
+function getDelimitedInput(name, delim, options) {
+    const inputVal = core.getInput(name, options);
+    if (!inputVal) {
+        return [];
+    }
+    const result = [];
+    for (const x of inputVal.split(delim)) {
+        if (x) {
+            result.push(x);
+        }
+    }
+    return result;
+}
+exports.getDelimitedInput = getDelimitedInput;
+function _getDefaultFindOptions() {
+    return {
+        allowBrokenSymbolicLinks: false,
+        followSpecifiedSymbolicLink: true,
+        followSymbolicLinks: true
+    };
+}
+function _debugFindOptions(options) {
+    core.debug(`findOptions.allowBrokenSymbolicLinks: '${options.allowBrokenSymbolicLinks}'`);
+    core.debug(`findOptions.followSpecifiedSymbolicLink: '${options.followSpecifiedSymbolicLink}'`);
+    core.debug(`findOptions.followSymbolicLinks: '${options.followSymbolicLinks}'`);
+}
+class FindItem {
+    constructor(filepath, level) {
+        this.path = filepath;
+        this.level = level;
+    }
+}
+/**
+ * Recursively finds all paths a given path. Returns an array of paths.
+ *
+ * @param     findPath  path to search
+ * @param     options   optional. defaults to { followSymbolicLinks: true }. following soft links is generally appropriate unless deleting files.
+ * @returns   string[]
+ */
+function find(findPath, options) {
+    if (!findPath) {
+        core.debug('no path specified');
+        return [];
+    }
+    // normalize the path, otherwise the first result is inconsistently formatted from the rest of the results
+    // because path.join() performs normalization.
+    findPath = path.normalize(findPath);
+    // debug trace the parameters
+    core.debug(`findPath: '${findPath}'`);
+    options = options || _getDefaultFindOptions();
+    _debugFindOptions(options);
+    // return empty if not exists
+    try {
+        fs.lstatSync(findPath);
+    }
+    catch (err) {
+        if (err.code === 'ENOENT') {
+            core.debug('0 results');
+            return [];
+        }
+        throw err;
+    }
+    try {
+        const result = [];
+        // push the first item
+        const stack = [new FindItem(findPath, 1)];
+        const traversalChain = []; // used to detect cycles
+        while (stack.length) {
+            // pop the next item and push to the result array
+            const item = stack.pop(); // non-null because `stack.length` was truthy
+            if (item) {
+                result.push(item.path);
+                // stat the item.  the stat info is used further below to determine whether to traverse deeper
+                //
+                // stat returns info about the target of a symlink (or symlink chain),
+                // lstat returns info about a symlink itself
+                let stats;
+                if (options.followSymbolicLinks) {
+                    try {
+                        // use stat (following all symlinks)
+                        stats = fs.statSync(item.path);
+                    }
+                    catch (err) {
+                        if (err.code === 'ENOENT' && options.allowBrokenSymbolicLinks) {
+                            // fallback to lstat (broken symlinks allowed)
+                            stats = fs.lstatSync(item.path);
+                            core.debug(`  ${item.path} (broken symlink)`);
+                        }
+                        else {
+                            throw err;
+                        }
+                    }
+                }
+                else if (options.followSpecifiedSymbolicLink && result.length === 1) {
+                    try {
+                        // use stat (following symlinks for the specified path and this is the specified path)
+                        stats = fs.statSync(item.path);
+                    }
+                    catch (err) {
+                        if (err.code === 'ENOENT' && options.allowBrokenSymbolicLinks) {
+                            // fallback to lstat (broken symlinks allowed)
+                            stats = fs.lstatSync(item.path);
+                            core.debug(`  ${item.path} (broken symlink)`);
+                        }
+                        else {
+                            throw err;
+                        }
+                    }
+                }
+                else {
+                    // use lstat (not following symlinks)
+                    stats = fs.lstatSync(item.path);
+                }
+                // note, isDirectory() returns false for the lstat of a symlink
+                if (stats.isDirectory()) {
+                    core.debug(`  ${item.path} (directory)`);
+                    if (options.followSymbolicLinks) {
+                        // get the realpath
+                        const realPath = fs.realpathSync(item.path);
+                        // fixup the traversal chain to match the item level
+                        while (traversalChain.length >= item.level) {
+                            traversalChain.pop();
+                        }
+                        // test for a cycle
+                        if (traversalChain.some((x) => x === realPath)) {
+                            core.debug('    cycle detected');
+                            continue;
+                        }
+                        // update the traversal chain
+                        traversalChain.push(realPath);
+                    }
+                    // push the child items in reverse onto the stack
+                    const childLevel = item.level + 1;
+                    const childItems = fs
+                        .readdirSync(item.path)
+                        .map((childName) => new FindItem(path.join(item.path, childName), childLevel));
+                    for (let i = childItems.length - 1; i >= 0; i--) {
+                        stack.push(childItems[i]);
+                    }
+                }
+                else {
+                    core.debug(`  ${item.path} (file)`);
+                }
+            }
+        }
+        core.debug(`${result.length} results`);
+        return result;
+    }
+    catch (err) {
+        throw new Error(util.format('Failed %s: %s', 'find', err.message));
+    }
+}
+exports.find = find;
+function _debugMatchOptions(options) {
+    core.debug(`matchOptions.debug: '${options.debug}'`);
+    core.debug(`matchOptions.nobrace: '${options.nobrace}'`);
+    core.debug(`matchOptions.noglobstar: '${options.noglobstar}'`);
+    core.debug(`matchOptions.dot: '${options.dot}'`);
+    core.debug(`matchOptions.noext: '${options.noext}'`);
+    core.debug(`matchOptions.nocase: '${options.nocase}'`);
+    core.debug(`matchOptions.nonull: '${options.nonull}'`);
+    core.debug(`matchOptions.matchBase: '${options.matchBase}'`);
+    core.debug(`matchOptions.nocomment: '${options.nocomment}'`);
+    core.debug(`matchOptions.nonegate: '${options.nonegate}'`);
+    core.debug(`matchOptions.flipNegate: '${options.flipNegate}'`);
+}
+function _getDefaultMatchOptions() {
+    return {
+        debug: false,
+        nobrace: true,
+        noglobstar: false,
+        dot: true,
+        noext: false,
+        nocase: process.platform === 'win32',
+        nonull: false,
+        matchBase: false,
+        nocomment: false,
+        nonegate: false,
+        flipNegate: false
+    };
+}
+function _cloneMatchOptions(matchOptions) {
+    return {
+        debug: matchOptions.debug,
+        nobrace: matchOptions.nobrace,
+        noglobstar: matchOptions.noglobstar,
+        dot: matchOptions.dot,
+        noext: matchOptions.noext,
+        nocase: matchOptions.nocase,
+        nonull: matchOptions.nonull,
+        matchBase: matchOptions.matchBase,
+        nocomment: matchOptions.nocomment,
+        nonegate: matchOptions.nonegate,
+        flipNegate: matchOptions.flipNegate
+    };
+}
+exports._cloneMatchOptions = _cloneMatchOptions;
+/**
+ * Applies glob patterns to a list of paths. Supports interleaved exclude patterns.
+ *
+ * @param  list         array of paths
+ * @param  patterns     patterns to apply. supports interleaved exclude patterns.
+ * @param  patternRoot  optional. default root to apply to unrooted patterns. not applied to basename-only patterns when matchBase:true.
+ * @param  options      optional. defaults to { dot: true, nobrace: true, nocase: process.platform == 'win32' }.
+ */
+function match(list, patterns, patternRoot, options) {
+    // trace parameters
+    core.debug(`patternRoot: '${patternRoot}'`);
+    options = options || _getDefaultMatchOptions(); // default match options
+    _debugMatchOptions(options);
+    // convert pattern to an array
+    if (typeof patterns === 'string') {
+        patterns = [patterns];
+    }
+    // hashtable to keep track of matches
+    const map = {};
+    const originalOptions = options;
+    for (let pattern of patterns) {
+        core.debug(`pattern: '${pattern}'`);
+        // trim and skip empty
+        pattern = (pattern || '').trim();
+        if (!pattern) {
+            core.debug('skipping empty pattern');
+            continue;
+        }
+        // clone match options
+        options = _cloneMatchOptions(originalOptions);
+        // skip comments
+        if (!options.nocomment && pattern.startsWith('#')) {
+            core.debug('skipping comment');
+            continue;
+        }
+        // set nocomment - brace expansion could result in a leading '#'
+        options.nocomment = true;
+        // determine whether pattern is include or exclude
+        let negateCount = 0;
+        if (!options.nonegate) {
+            while (pattern.charAt(negateCount) === '!') {
+                negateCount++;
+            }
+            pattern = pattern.substring(negateCount); // trim leading '!'
+            if (negateCount) {
+                core.debug(`trimmed leading '!'. pattern: '${pattern}'`);
+            }
+        }
+        const isIncludePattern = negateCount === 0 ||
+            (negateCount % 2 === 0 && !options.flipNegate) ||
+            (negateCount % 2 === 1 && options.flipNegate);
+        // set nonegate - brace expansion could result in a leading '!'
+        options.nonegate = true;
+        options.flipNegate = false;
+        // expand braces - required to accurately root patterns
+        let expanded;
+        const preExpanded = pattern;
+        if (options.nobrace) {
+            expanded = [pattern];
+        }
+        else {
+            // convert slashes on Windows before calling braceExpand(). unfortunately this means braces cannot
+            // be escaped on Windows, this limitation is consistent with current limitations of minimatch (3.0.3).
+            core.debug('expanding braces');
+            const convertedPattern = process.platform === 'win32' ? pattern.replace(/\\/g, '/') : pattern;
+            expanded = minimatch.braceExpand(convertedPattern);
+        }
+        // set nobrace
+        options.nobrace = true;
+        for (let pat of expanded) {
+            if (expanded.length !== 1 || pat !== preExpanded) {
+                core.debug(`pattern: '${pat}'`);
+            }
+            // trim and skip empty
+            pat = (pat || '').trim();
+            if (!pat) {
+                core.debug('skipping empty pattern');
+                continue;
+            }
+            // root the pattern when all of the following conditions are true:
+            if (patternRoot && // patternRoot supplied
+                im._isRooted(pat) && // AND pattern not rooted
+                // AND matchBase:false or not basename only
+                (!options.matchBase ||
+                    (process.platform === 'win32'
+                        ? pat.replace(/\\/g, '/')
+                        : pat).includes('/'))) {
+                pat = im._ensureRooted(patternRoot, pat);
+                core.debug(`rooted pattern: '${pat}'`);
+            }
+            if (isIncludePattern) {
+                // apply the pattern
+                core.debug('applying include pattern against original list');
+                const matchResults = minimatch.match(list, pat, options);
+                core.debug(`${matchResults.length} matches`);
+                // union the results
+                for (const matchResult of matchResults) {
+                    map[matchResult] = true;
+                }
+            }
+            else {
+                // apply the pattern
+                core.debug('applying exclude pattern against original list');
+                const matchResults = minimatch.match(list, pat, options);
+                core.debug(`${matchResults.length} matches`);
+                // substract the results
+                for (const matchResult of matchResults) {
+                    delete map[matchResult];
+                }
+            }
+        }
+    }
+    // return a filtered version of the original list (preserves order and prevents duplication)
+    const result = list.filter((item) => map.hasOwnProperty(item));
+    core.debug(`${result.length} final results`);
+    return result;
+}
+exports.match = match;
+/**
+ * Remove a path recursively with force
+ *
+ * @param     inputPath path to remove
+ * @throws    when the file or directory exists but could not be deleted.
+ */
+function rmRF(inputPath) {
+    core.debug(`rm -rf ${inputPath}`);
+    if (getPlatform() === Platform.Windows) {
+        // Node doesn't provide a delete operation, only an unlink function. This means that if the file is being used by another
+        // program (e.g. antivirus), it won't be deleted. To address this, we shell out the work to rd/del.
+        try {
+            if (fs.statSync(inputPath).isDirectory()) {
+                core.debug(`removing directory ${inputPath}`);
+                childProcess.execSync(`rd /s /q "${inputPath}"`);
+            }
+            else {
+                core.debug(`removing file ${inputPath}`);
+                childProcess.execSync(`del /f /a "${inputPath}"`);
+            }
+        }
+        catch (err) {
+            // if you try to delete a file that doesn't exist, desired result is achieved
+            // other errors are valid
+            if (err.code !== 'ENOENT') {
+                throw new Error(util.format('Failed %s: %s', 'rmRF', err.message));
+            }
+        }
+        // Shelling out fails to remove a symlink folder with missing source, this unlink catches that
+        try {
+            fs.unlinkSync(inputPath);
+        }
+        catch (err) {
+            // if you try to delete a file that doesn't exist, desired result is achieved
+            // other errors are valid
+            if (err.code !== 'ENOENT') {
+                throw new Error(util.format('Failed %s: %s', 'rmRF', err.message));
+            }
+        }
+    }
+    else {
+        // get the lstats in order to workaround a bug in shelljs@0.3.0 where symlinks
+        // with missing targets are not handled correctly by "rm('-rf', path)"
+        let lstats;
+        try {
+            lstats = fs.lstatSync(inputPath);
+        }
+        catch (err) {
+            // if you try to delete a file that doesn't exist, desired result is achieved
+            // other errors are valid
+            if (err.code === 'ENOENT') {
+                return;
+            }
+            throw new Error(util.format('Failed %s: %s', 'rmRF', err.message));
+        }
+        if (lstats.isDirectory()) {
+            core.debug('removing directory');
+            shell.rm('-rf', inputPath);
+            const errMsg = shell.error();
+            if (errMsg) {
+                throw new Error(util.format('Failed %s: %s', 'rmRF', errMsg));
+            }
+            return;
+        }
+        core.debug('removing file');
+        try {
+            fs.unlinkSync(inputPath);
+        }
+        catch (err) {
+            throw new Error(util.format('Failed %s: %s', 'rmRF', err.message));
+        }
+    }
+}
+exports.rmRF = rmRF;
+/**
+ * Determine the operating system the build agent is running on.
+ * @returns {Platform}
+ * @throws {Error} Platform is not supported by our agent
+ */
+function getPlatform() {
+    switch (process.platform) {
+        case 'win32':
+            return Platform.Windows;
+        case 'darwin':
+            return Platform.MacOS;
+        case 'linux':
+            return Platform.Linux;
+        default:
+            throw Error(util.format('Platform not supported: %s', process.platform));
+    }
+}
+exports.getPlatform = getPlatform;
+/** Platforms supported by our build agent */
+var Platform;
+(function (Platform) {
+    Platform[Platform["Windows"] = 0] = "Windows";
+    Platform[Platform["MacOS"] = 1] = "MacOS";
+    Platform[Platform["Linux"] = 2] = "Linux";
+})(Platform = exports.Platform || (exports.Platform = {}));
+
+
+/***/ }),
 /* 185 */,
 /* 186 */,
 /* 187 */,
@@ -18282,332 +18769,9 @@ module.exports = vending;
 
 /***/ }),
 /* 249 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
+/***/ (function() {
 
-"use strict";
-
-
-// The zip file spec is at http://www.pkware.com/documents/casestudies/APPNOTE.TXT
-// TODO: There is fair chunk of the spec that I have ignored. Need to add
-// assertions everywhere to make sure that we are not dealing with a ZIP type
-// that I haven't designed for. Things like spanning archives, non-DEFLATE
-// compression, encryption, etc.
-var fs = __webpack_require__(598);
-var Q = __webpack_require__(885);
-var path = __webpack_require__(622);
-var util = __webpack_require__(669);
-var events = __webpack_require__(614);
-var structures = __webpack_require__(907);
-var signatures = __webpack_require__(789);
-var extractors = __webpack_require__(756);
-var FileDetails = __webpack_require__(287);
-
-var fstat = Q.denodeify(fs.fstat);
-var read = Q.denodeify(fs.read);
-var fopen = Q.denodeify(fs.open);
-
-function DecompressZip(filename) {
-    events.EventEmitter.call(this);
-
-    this.filename = filename;
-    this.stats = null;
-    this.fd = null;
-    this.chunkSize = 1024 * 1024; // Buffer up to 1Mb at a time
-    this.dirCache = {};
-
-    // When we need a resource, we should check if there is a promise for it
-    // already and use that. If the promise is already fulfilled we don't do the
-    // async work again and we get to queue up dependant tasks.
-    this._p = {}; // _p instead of _promises because it is a lot easier to read
-}
-
-util.inherits(DecompressZip, events.EventEmitter);
-
-DecompressZip.prototype.openFile = function () {
-    return fopen(this.filename, 'r');
-};
-
-DecompressZip.prototype.closeFile = function () {
-    if (this.fd) {
-        fs.closeSync(this.fd);
-        this.fd = null;
-    }
-};
-
-DecompressZip.prototype.statFile = function (fd) {
-    this.fd = fd;
-    return fstat(fd);
-};
-
-DecompressZip.prototype.list = function () {
-    var self = this;
-
-    this.getFiles()
-    .then(function (files) {
-        var result = [];
-
-        files.forEach(function (file) {
-            result.push(file.path);
-        });
-
-        self.emit('list', result);
-    })
-    .fail(function (error) {
-        self.emit('error', error);
-    })
-    .fin(self.closeFile.bind(self));
-
-    return this;
-};
-
-DecompressZip.prototype.extract = function (options) {
-    var self = this;
-
-    options = options || {};
-    options.path = options.path || process.cwd();
-    options.filter = options.filter || null;
-    options.follow = !!options.follow;
-    options.strip = +options.strip || 0;
-    options.restrict = options.restrict !== false;
-
-
-    this.getFiles()
-    .then(function (files) {
-        var copies = [];
-        if (options.restrict) {
-          files = files.map(function (file) {
-            var destination = path.join(options.path, file.path);
-            // The destination path must not be outside options.path
-            if (destination.indexOf(options.path) !== 0) {
-              throw new Error('You cannot extract a file outside of the target path');
-            }
-            return file;
-          });
-        }
-        if (options.filter) {
-            files = files.filter(options.filter);
-        }
-
-        if (options.follow) {
-            copies = files.filter(function (file) {
-                return file.type === 'SymbolicLink';
-            });
-            files = files.filter(function (file) {
-                return file.type !== 'SymbolicLink';
-            });
-        }
-
-        if (options.strip) {
-            files = files.map(function (file) {
-                if (file.type !== 'Directory') {
-                    // we don't use `path.sep` as we're using `/` in Windows too
-                    var dir = file.parent.split('/');
-                    var filename = file.filename;
-
-                    if (options.strip > dir.length) {
-                        throw new Error('You cannot strip more levels than there are directories');
-                    } else {
-                        dir = dir.slice(options.strip);
-                    }
-
-                    file.path = path.join(dir.join(path.sep), filename);
-                    return file;
-                }
-            });
-        }
-
-        return self.extractFiles(files, options)
-        .then(self.extractFiles.bind(self, copies, options));
-    })
-    .then(function (results) {
-        self.emit('extract', results);
-    })
-    .fail(function (error) {
-        self.emit('error', error);
-    })
-    .fin(self.closeFile.bind(self));
-
-    return this;
-};
-
-// Utility methods
-DecompressZip.prototype.getSearchBuffer = function (stats) {
-    var size = Math.min(stats.size, this.chunkSize);
-    this.stats = stats;
-    return this.getBuffer(stats.size - size, stats.size);
-};
-
-DecompressZip.prototype.getBuffer = function (start, end) {
-    var size = end - start;
-    return read(this.fd, new Buffer(size), 0, size, start)
-    .then(function (result) {
-        return result[1];
-    });
-};
-
-DecompressZip.prototype.findEndOfDirectory = function (buffer) {
-    var index = buffer.length - 3;
-    var chunk = '';
-
-    // Apparently the ZIP spec is not very good and it is impossible to
-    // guarantee that you have read a zip file correctly, or to determine
-    // the location of the CD without hunting.
-    // Search backwards through the buffer, as it is very likely to be near the
-    // end of the file.
-    while (index > Math.max(buffer.length - this.chunkSize, 0) && chunk !== signatures.END_OF_CENTRAL_DIRECTORY) {
-        index--;
-        chunk = buffer.readUInt32LE(index);
-    }
-
-    if (chunk !== signatures.END_OF_CENTRAL_DIRECTORY) {
-        throw new Error('Could not find the End of Central Directory Record');
-    }
-
-    return buffer.slice(index);
-};
-
-// Directory here means the ZIP Central Directory, not a folder
-DecompressZip.prototype.readDirectory = function (recordBuffer) {
-    var record = structures.readEndRecord(recordBuffer);
-
-    return this.getBuffer(record.directoryOffset, record.directoryOffset + record.directorySize)
-    .then(structures.readDirectory.bind(null));
-};
-
-DecompressZip.prototype.getFiles = function () {
-    if (!this._p.getFiles) {
-        this._p.getFiles = this.openFile()
-        .then(this.statFile.bind(this))
-        .then(this.getSearchBuffer.bind(this))
-        .then(this.findEndOfDirectory.bind(this))
-        .then(this.readDirectory.bind(this))
-        .then(this.readFileEntries.bind(this));
-    }
-
-    return this._p.getFiles;
-};
-
-DecompressZip.prototype.readFileEntries = function (directory) {
-    var promises = [];
-    var files = [];
-    var self = this;
-
-    directory.forEach(function (directoryEntry, index) {
-        var start = directoryEntry.relativeOffsetOfLocalHeader;
-        var end = Math.min(self.stats.size, start + structures.maxFileEntrySize);
-        var fileDetails = new FileDetails(directoryEntry);
-
-        var promise = self.getBuffer(start, end)
-        .then(structures.readFileEntry.bind(null))
-        .then(function (fileEntry) {
-            var maxSize;
-
-            if (fileDetails.compressedSize > 0) {
-                maxSize = fileDetails.compressedSize;
-            } else {
-                maxSize = self.stats.size;
-
-                if (index < directory.length - 1) {
-                    maxSize = directory[index + 1].relativeOffsetOfLocalHeader;
-                }
-
-                maxSize -= start + fileEntry.entryLength;
-            }
-
-            fileDetails._offset = start + fileEntry.entryLength;
-            fileDetails._maxSize = maxSize;
-
-            self.emit('file', fileDetails);
-            files[index] = fileDetails;
-        });
-
-        promises.push(promise);
-    });
-
-    return Q.all(promises)
-    .then(function () {
-        return files;
-    });
-};
-
-DecompressZip.prototype.extractFiles = function (files, options, results) {
-    var promises = [];
-    var self = this;
-
-    results = results || [];
-    var fileIndex = 0;
-    files.forEach(function (file) {
-        var promise = self.extractFile(file, options)
-        .then(function (result) {
-            self.emit('progress', fileIndex++, files.length);
-            results.push(result);
-        });
-
-        promises.push(promise);
-    });
-
-    return Q.all(promises)
-    .then(function () {
-        return results;
-    });
-};
-
-DecompressZip.prototype.extractFile = function (file, options) {
-    var destination = path.join(options.path, file.path);
-
-    // Possible compression methods:
-    //    0 - The file is stored (no compression)
-    //    1 - The file is Shrunk
-    //    2 - The file is Reduced with compression factor 1
-    //    3 - The file is Reduced with compression factor 2
-    //    4 - The file is Reduced with compression factor 3
-    //    5 - The file is Reduced with compression factor 4
-    //    6 - The file is Imploded
-    //    7 - Reserved for Tokenizing compression algorithm
-    //    8 - The file is Deflated
-    //    9 - Enhanced Deflating using Deflate64(tm)
-    //   10 - PKWARE Data Compression Library Imploding (old IBM TERSE)
-    //   11 - Reserved by PKWARE
-    //   12 - File is compressed using BZIP2 algorithm
-    //   13 - Reserved by PKWARE
-    //   14 - LZMA (EFS)
-    //   15 - Reserved by PKWARE
-    //   16 - Reserved by PKWARE
-    //   17 - Reserved by PKWARE
-    //   18 - File is compressed using IBM TERSE (new)
-    //   19 - IBM LZ77 z Architecture (PFS)
-    //   97 - WavPack compressed data
-    //   98 - PPMd version I, Rev 1
-
-    if (file.type === 'Directory') {
-        return extractors.folder(file, destination, this);
-    }
-
-    if (file.type === 'File') {
-        switch (file.compressionMethod) {
-        case 0:
-            return extractors.store(file, destination, this);
-
-        case 8:
-            return extractors.deflate(file, destination, this);
-
-        default:
-            throw new Error('Unsupported compression type');
-        }
-    }
-
-    if (file.type === 'SymbolicLink') {
-        if (options.follow) {
-            return extractors.copy(file, destination, this, options.path);
-        } else {
-            return extractors.symlink(file, destination, this, options.path);
-        }
-    }
-
-    throw new Error('Unsupported file type "' + file.type + '"');
-};
-
-module.exports = DecompressZip;
+// see dirs.js
 
 
 /***/ }),
@@ -19007,11 +19171,12 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const utility = __importStar(__webpack_require__(884));
+const utility = __importStar(__webpack_require__(876));
 const util = __importStar(__webpack_require__(669));
 const core = __importStar(__webpack_require__(470));
-const zipUtility = __importStar(__webpack_require__(508));
+const zipUtility = __importStar(__webpack_require__(869));
 const fs = __importStar(__webpack_require__(747));
+const tl = __importStar(__webpack_require__(184));
 var PackageType;
 (function (PackageType) {
     PackageType[PackageType["war"] = 0] = "war";
@@ -19060,7 +19225,7 @@ class Package {
     }
     getPackageType() {
         if (this._packageType === undefined) {
-            if (!utility.exist(this._path)) {
+            if (!tl.exist(this._path)) {
                 throw new Error(util.format(this, [
                     'Invalid App Service package or folder path provided: %s',
                     this._path
@@ -19092,7 +19257,7 @@ class Package {
     }
     isFolder() {
         if (this._isFolder === undefined) {
-            if (!utility.exist(this._path)) {
+            if (!tl.exist(this._path)) {
                 throw new Error(util.format('Invalid App Service package or folder path provided: %s', this._path));
             }
             this._isFolder = !fs.statSync(this._path).isFile();
@@ -23500,7 +23665,308 @@ module.exports = Extract
 /* 368 */,
 /* 369 */,
 /* 370 */,
-/* 371 */,
+/* 371 */
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+// Copyright Joyent, Inc. and other Node contributors.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the
+// "Software"), to deal in the Software without restriction, including
+// without limitation the rights to use, copy, modify, merge, publish,
+// distribute, sublicense, and/or sell copies of the Software, and to permit
+// persons to whom the Software is furnished to do so, subject to the
+// following conditions:
+//
+// The above copyright notice and this permission notice shall be included
+// in all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+// USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+
+
+/*<replacement>*/
+
+var Buffer = __webpack_require__(149).Buffer;
+/*</replacement>*/
+
+var isEncoding = Buffer.isEncoding || function (encoding) {
+  encoding = '' + encoding;
+  switch (encoding && encoding.toLowerCase()) {
+    case 'hex':case 'utf8':case 'utf-8':case 'ascii':case 'binary':case 'base64':case 'ucs2':case 'ucs-2':case 'utf16le':case 'utf-16le':case 'raw':
+      return true;
+    default:
+      return false;
+  }
+};
+
+function _normalizeEncoding(enc) {
+  if (!enc) return 'utf8';
+  var retried;
+  while (true) {
+    switch (enc) {
+      case 'utf8':
+      case 'utf-8':
+        return 'utf8';
+      case 'ucs2':
+      case 'ucs-2':
+      case 'utf16le':
+      case 'utf-16le':
+        return 'utf16le';
+      case 'latin1':
+      case 'binary':
+        return 'latin1';
+      case 'base64':
+      case 'ascii':
+      case 'hex':
+        return enc;
+      default:
+        if (retried) return; // undefined
+        enc = ('' + enc).toLowerCase();
+        retried = true;
+    }
+  }
+};
+
+// Do not cache `Buffer.isEncoding` when checking encoding names as some
+// modules monkey-patch it to support additional encodings
+function normalizeEncoding(enc) {
+  var nenc = _normalizeEncoding(enc);
+  if (typeof nenc !== 'string' && (Buffer.isEncoding === isEncoding || !isEncoding(enc))) throw new Error('Unknown encoding: ' + enc);
+  return nenc || enc;
+}
+
+// StringDecoder provides an interface for efficiently splitting a series of
+// buffers into a series of JS strings without breaking apart multi-byte
+// characters.
+exports.StringDecoder = StringDecoder;
+function StringDecoder(encoding) {
+  this.encoding = normalizeEncoding(encoding);
+  var nb;
+  switch (this.encoding) {
+    case 'utf16le':
+      this.text = utf16Text;
+      this.end = utf16End;
+      nb = 4;
+      break;
+    case 'utf8':
+      this.fillLast = utf8FillLast;
+      nb = 4;
+      break;
+    case 'base64':
+      this.text = base64Text;
+      this.end = base64End;
+      nb = 3;
+      break;
+    default:
+      this.write = simpleWrite;
+      this.end = simpleEnd;
+      return;
+  }
+  this.lastNeed = 0;
+  this.lastTotal = 0;
+  this.lastChar = Buffer.allocUnsafe(nb);
+}
+
+StringDecoder.prototype.write = function (buf) {
+  if (buf.length === 0) return '';
+  var r;
+  var i;
+  if (this.lastNeed) {
+    r = this.fillLast(buf);
+    if (r === undefined) return '';
+    i = this.lastNeed;
+    this.lastNeed = 0;
+  } else {
+    i = 0;
+  }
+  if (i < buf.length) return r ? r + this.text(buf, i) : this.text(buf, i);
+  return r || '';
+};
+
+StringDecoder.prototype.end = utf8End;
+
+// Returns only complete characters in a Buffer
+StringDecoder.prototype.text = utf8Text;
+
+// Attempts to complete a partial non-UTF-8 character using bytes from a Buffer
+StringDecoder.prototype.fillLast = function (buf) {
+  if (this.lastNeed <= buf.length) {
+    buf.copy(this.lastChar, this.lastTotal - this.lastNeed, 0, this.lastNeed);
+    return this.lastChar.toString(this.encoding, 0, this.lastTotal);
+  }
+  buf.copy(this.lastChar, this.lastTotal - this.lastNeed, 0, buf.length);
+  this.lastNeed -= buf.length;
+};
+
+// Checks the type of a UTF-8 byte, whether it's ASCII, a leading byte, or a
+// continuation byte. If an invalid byte is detected, -2 is returned.
+function utf8CheckByte(byte) {
+  if (byte <= 0x7F) return 0;else if (byte >> 5 === 0x06) return 2;else if (byte >> 4 === 0x0E) return 3;else if (byte >> 3 === 0x1E) return 4;
+  return byte >> 6 === 0x02 ? -1 : -2;
+}
+
+// Checks at most 3 bytes at the end of a Buffer in order to detect an
+// incomplete multi-byte UTF-8 character. The total number of bytes (2, 3, or 4)
+// needed to complete the UTF-8 character (if applicable) are returned.
+function utf8CheckIncomplete(self, buf, i) {
+  var j = buf.length - 1;
+  if (j < i) return 0;
+  var nb = utf8CheckByte(buf[j]);
+  if (nb >= 0) {
+    if (nb > 0) self.lastNeed = nb - 1;
+    return nb;
+  }
+  if (--j < i || nb === -2) return 0;
+  nb = utf8CheckByte(buf[j]);
+  if (nb >= 0) {
+    if (nb > 0) self.lastNeed = nb - 2;
+    return nb;
+  }
+  if (--j < i || nb === -2) return 0;
+  nb = utf8CheckByte(buf[j]);
+  if (nb >= 0) {
+    if (nb > 0) {
+      if (nb === 2) nb = 0;else self.lastNeed = nb - 3;
+    }
+    return nb;
+  }
+  return 0;
+}
+
+// Validates as many continuation bytes for a multi-byte UTF-8 character as
+// needed or are available. If we see a non-continuation byte where we expect
+// one, we "replace" the validated continuation bytes we've seen so far with
+// a single UTF-8 replacement character ('\ufffd'), to match v8's UTF-8 decoding
+// behavior. The continuation byte check is included three times in the case
+// where all of the continuation bytes for a character exist in the same buffer.
+// It is also done this way as a slight performance increase instead of using a
+// loop.
+function utf8CheckExtraBytes(self, buf, p) {
+  if ((buf[0] & 0xC0) !== 0x80) {
+    self.lastNeed = 0;
+    return '\ufffd';
+  }
+  if (self.lastNeed > 1 && buf.length > 1) {
+    if ((buf[1] & 0xC0) !== 0x80) {
+      self.lastNeed = 1;
+      return '\ufffd';
+    }
+    if (self.lastNeed > 2 && buf.length > 2) {
+      if ((buf[2] & 0xC0) !== 0x80) {
+        self.lastNeed = 2;
+        return '\ufffd';
+      }
+    }
+  }
+}
+
+// Attempts to complete a multi-byte UTF-8 character using bytes from a Buffer.
+function utf8FillLast(buf) {
+  var p = this.lastTotal - this.lastNeed;
+  var r = utf8CheckExtraBytes(this, buf, p);
+  if (r !== undefined) return r;
+  if (this.lastNeed <= buf.length) {
+    buf.copy(this.lastChar, p, 0, this.lastNeed);
+    return this.lastChar.toString(this.encoding, 0, this.lastTotal);
+  }
+  buf.copy(this.lastChar, p, 0, buf.length);
+  this.lastNeed -= buf.length;
+}
+
+// Returns all complete UTF-8 characters in a Buffer. If the Buffer ended on a
+// partial character, the character's bytes are buffered until the required
+// number of bytes are available.
+function utf8Text(buf, i) {
+  var total = utf8CheckIncomplete(this, buf, i);
+  if (!this.lastNeed) return buf.toString('utf8', i);
+  this.lastTotal = total;
+  var end = buf.length - (total - this.lastNeed);
+  buf.copy(this.lastChar, 0, end);
+  return buf.toString('utf8', i, end);
+}
+
+// For UTF-8, a replacement character is added when ending on a partial
+// character.
+function utf8End(buf) {
+  var r = buf && buf.length ? this.write(buf) : '';
+  if (this.lastNeed) return r + '\ufffd';
+  return r;
+}
+
+// UTF-16LE typically needs two bytes per character, but even if we have an even
+// number of bytes available, we need to check if we end on a leading/high
+// surrogate. In that case, we need to wait for the next two bytes in order to
+// decode the last character properly.
+function utf16Text(buf, i) {
+  if ((buf.length - i) % 2 === 0) {
+    var r = buf.toString('utf16le', i);
+    if (r) {
+      var c = r.charCodeAt(r.length - 1);
+      if (c >= 0xD800 && c <= 0xDBFF) {
+        this.lastNeed = 2;
+        this.lastTotal = 4;
+        this.lastChar[0] = buf[buf.length - 2];
+        this.lastChar[1] = buf[buf.length - 1];
+        return r.slice(0, -1);
+      }
+    }
+    return r;
+  }
+  this.lastNeed = 1;
+  this.lastTotal = 2;
+  this.lastChar[0] = buf[buf.length - 1];
+  return buf.toString('utf16le', i, buf.length - 1);
+}
+
+// For UTF-16LE we do not explicitly append special replacement characters if we
+// end on a partial character, we simply let v8 handle that.
+function utf16End(buf) {
+  var r = buf && buf.length ? this.write(buf) : '';
+  if (this.lastNeed) {
+    var end = this.lastTotal - this.lastNeed;
+    return r + this.lastChar.toString('utf16le', 0, end);
+  }
+  return r;
+}
+
+function base64Text(buf, i) {
+  var n = (buf.length - i) % 3;
+  if (n === 0) return buf.toString('base64', i);
+  this.lastNeed = 3 - n;
+  this.lastTotal = 3;
+  if (n === 1) {
+    this.lastChar[0] = buf[buf.length - 1];
+  } else {
+    this.lastChar[0] = buf[buf.length - 2];
+    this.lastChar[1] = buf[buf.length - 1];
+  }
+  return buf.toString('base64', i, buf.length - n);
+}
+
+function base64End(buf) {
+  var r = buf && buf.length ? this.write(buf) : '';
+  if (this.lastNeed) return r + this.lastChar.toString('base64', 0, 3 - this.lastNeed);
+  return r;
+}
+
+// Pass bytes on through for single-byte encodings (e.g. ascii, latin1, hex)
+function simpleWrite(buf) {
+  return buf.toString(this.encoding);
+}
+
+function simpleEnd(buf) {
+  return buf && buf.length ? this.write(buf) : '';
+}
+
+/***/ }),
 /* 372 */,
 /* 373 */,
 /* 374 */,
@@ -23823,7 +24289,336 @@ module.exports = Pack
 /* 389 */,
 /* 390 */,
 /* 391 */,
-/* 392 */,
+/* 392 */
+/***/ (function(module, __unusedexports, __webpack_require__) {
+
+"use strict";
+
+
+// The zip file spec is at http://www.pkware.com/documents/casestudies/APPNOTE.TXT
+// TODO: There is fair chunk of the spec that I have ignored. Need to add
+// assertions everywhere to make sure that we are not dealing with a ZIP type
+// that I haven't designed for. Things like spanning archives, non-DEFLATE
+// compression, encryption, etc.
+var fs = __webpack_require__(598);
+var Q = __webpack_require__(885);
+var path = __webpack_require__(622);
+var util = __webpack_require__(669);
+var events = __webpack_require__(614);
+var structures = __webpack_require__(907);
+var signatures = __webpack_require__(789);
+var extractors = __webpack_require__(756);
+var FileDetails = __webpack_require__(287);
+
+var fstat = Q.denodeify(fs.fstat);
+var read = Q.denodeify(fs.read);
+var fopen = Q.denodeify(fs.open);
+
+function DecompressZip(filename) {
+    events.EventEmitter.call(this);
+
+    this.filename = filename;
+    this.stats = null;
+    this.fd = null;
+    this.chunkSize = 1024 * 1024; // Buffer up to 1Mb at a time
+    this.dirCache = {};
+
+    // When we need a resource, we should check if there is a promise for it
+    // already and use that. If the promise is already fulfilled we don't do the
+    // async work again and we get to queue up dependant tasks.
+    this._p = {}; // _p instead of _promises because it is a lot easier to read
+}
+
+util.inherits(DecompressZip, events.EventEmitter);
+
+DecompressZip.prototype.openFile = function () {
+    return fopen(this.filename, 'r');
+};
+
+DecompressZip.prototype.closeFile = function () {
+    if (this.fd) {
+        fs.closeSync(this.fd);
+        this.fd = null;
+    }
+};
+
+DecompressZip.prototype.statFile = function (fd) {
+    this.fd = fd;
+    return fstat(fd);
+};
+
+DecompressZip.prototype.list = function () {
+    var self = this;
+
+    this.getFiles()
+    .then(function (files) {
+        var result = [];
+
+        files.forEach(function (file) {
+            result.push(file.path);
+        });
+
+        self.emit('list', result);
+    })
+    .fail(function (error) {
+        self.emit('error', error);
+    })
+    .fin(self.closeFile.bind(self));
+
+    return this;
+};
+
+DecompressZip.prototype.extract = function (options) {
+    var self = this;
+
+    options = options || {};
+    options.path = options.path || process.cwd();
+    options.filter = options.filter || null;
+    options.follow = !!options.follow;
+    options.strip = +options.strip || 0;
+    options.restrict = options.restrict !== false;
+
+
+    this.getFiles()
+    .then(function (files) {
+        var copies = [];
+        if (options.restrict) {
+          files = files.map(function (file) {
+            var destination = path.join(options.path, file.path);
+            // The destination path must not be outside options.path
+            if (destination.indexOf(options.path) !== 0) {
+              throw new Error('You cannot extract a file outside of the target path');
+            }
+            return file;
+          });
+        }
+        if (options.filter) {
+            files = files.filter(options.filter);
+        }
+
+        if (options.follow) {
+            copies = files.filter(function (file) {
+                return file.type === 'SymbolicLink';
+            });
+            files = files.filter(function (file) {
+                return file.type !== 'SymbolicLink';
+            });
+        }
+
+        if (options.strip) {
+            files = files.map(function (file) {
+                if (file.type !== 'Directory') {
+                    // we don't use `path.sep` as we're using `/` in Windows too
+                    var dir = file.parent.split('/');
+                    var filename = file.filename;
+
+                    if (options.strip > dir.length) {
+                        throw new Error('You cannot strip more levels than there are directories');
+                    } else {
+                        dir = dir.slice(options.strip);
+                    }
+
+                    file.path = path.join(dir.join(path.sep), filename);
+                    return file;
+                }
+            });
+        }
+
+        return self.extractFiles(files, options)
+        .then(self.extractFiles.bind(self, copies, options));
+    })
+    .then(function (results) {
+        self.emit('extract', results);
+    })
+    .fail(function (error) {
+        self.emit('error', error);
+    })
+    .fin(self.closeFile.bind(self));
+
+    return this;
+};
+
+// Utility methods
+DecompressZip.prototype.getSearchBuffer = function (stats) {
+    var size = Math.min(stats.size, this.chunkSize);
+    this.stats = stats;
+    return this.getBuffer(stats.size - size, stats.size);
+};
+
+DecompressZip.prototype.getBuffer = function (start, end) {
+    var size = end - start;
+    return read(this.fd, new Buffer(size), 0, size, start)
+    .then(function (result) {
+        return result[1];
+    });
+};
+
+DecompressZip.prototype.findEndOfDirectory = function (buffer) {
+    var index = buffer.length - 3;
+    var chunk = '';
+
+    // Apparently the ZIP spec is not very good and it is impossible to
+    // guarantee that you have read a zip file correctly, or to determine
+    // the location of the CD without hunting.
+    // Search backwards through the buffer, as it is very likely to be near the
+    // end of the file.
+    while (index > Math.max(buffer.length - this.chunkSize, 0) && chunk !== signatures.END_OF_CENTRAL_DIRECTORY) {
+        index--;
+        chunk = buffer.readUInt32LE(index);
+    }
+
+    if (chunk !== signatures.END_OF_CENTRAL_DIRECTORY) {
+        throw new Error('Could not find the End of Central Directory Record');
+    }
+
+    return buffer.slice(index);
+};
+
+// Directory here means the ZIP Central Directory, not a folder
+DecompressZip.prototype.readDirectory = function (recordBuffer) {
+    var record = structures.readEndRecord(recordBuffer);
+
+    return this.getBuffer(record.directoryOffset, record.directoryOffset + record.directorySize)
+    .then(structures.readDirectory.bind(null));
+};
+
+DecompressZip.prototype.getFiles = function () {
+    if (!this._p.getFiles) {
+        this._p.getFiles = this.openFile()
+        .then(this.statFile.bind(this))
+        .then(this.getSearchBuffer.bind(this))
+        .then(this.findEndOfDirectory.bind(this))
+        .then(this.readDirectory.bind(this))
+        .then(this.readFileEntries.bind(this));
+    }
+
+    return this._p.getFiles;
+};
+
+DecompressZip.prototype.readFileEntries = function (directory) {
+    var promises = [];
+    var files = [];
+    var self = this;
+
+    directory.forEach(function (directoryEntry, index) {
+        var start = directoryEntry.relativeOffsetOfLocalHeader;
+        var end = Math.min(self.stats.size, start + structures.maxFileEntrySize);
+        var fileDetails = new FileDetails(directoryEntry);
+
+        var promise = self.getBuffer(start, end)
+        .then(structures.readFileEntry.bind(null))
+        .then(function (fileEntry) {
+            var maxSize;
+
+            if (fileDetails.compressedSize > 0) {
+                maxSize = fileDetails.compressedSize;
+            } else {
+                maxSize = self.stats.size;
+
+                if (index < directory.length - 1) {
+                    maxSize = directory[index + 1].relativeOffsetOfLocalHeader;
+                }
+
+                maxSize -= start + fileEntry.entryLength;
+            }
+
+            fileDetails._offset = start + fileEntry.entryLength;
+            fileDetails._maxSize = maxSize;
+
+            self.emit('file', fileDetails);
+            files[index] = fileDetails;
+        });
+
+        promises.push(promise);
+    });
+
+    return Q.all(promises)
+    .then(function () {
+        return files;
+    });
+};
+
+DecompressZip.prototype.extractFiles = function (files, options, results) {
+    var promises = [];
+    var self = this;
+
+    results = results || [];
+    var fileIndex = 0;
+    files.forEach(function (file) {
+        var promise = self.extractFile(file, options)
+        .then(function (result) {
+            self.emit('progress', fileIndex++, files.length);
+            results.push(result);
+        });
+
+        promises.push(promise);
+    });
+
+    return Q.all(promises)
+    .then(function () {
+        return results;
+    });
+};
+
+DecompressZip.prototype.extractFile = function (file, options) {
+    var destination = path.join(options.path, file.path);
+
+    // Possible compression methods:
+    //    0 - The file is stored (no compression)
+    //    1 - The file is Shrunk
+    //    2 - The file is Reduced with compression factor 1
+    //    3 - The file is Reduced with compression factor 2
+    //    4 - The file is Reduced with compression factor 3
+    //    5 - The file is Reduced with compression factor 4
+    //    6 - The file is Imploded
+    //    7 - Reserved for Tokenizing compression algorithm
+    //    8 - The file is Deflated
+    //    9 - Enhanced Deflating using Deflate64(tm)
+    //   10 - PKWARE Data Compression Library Imploding (old IBM TERSE)
+    //   11 - Reserved by PKWARE
+    //   12 - File is compressed using BZIP2 algorithm
+    //   13 - Reserved by PKWARE
+    //   14 - LZMA (EFS)
+    //   15 - Reserved by PKWARE
+    //   16 - Reserved by PKWARE
+    //   17 - Reserved by PKWARE
+    //   18 - File is compressed using IBM TERSE (new)
+    //   19 - IBM LZ77 z Architecture (PFS)
+    //   97 - WavPack compressed data
+    //   98 - PPMd version I, Rev 1
+
+    if (file.type === 'Directory') {
+        return extractors.folder(file, destination, this);
+    }
+
+    if (file.type === 'File') {
+        switch (file.compressionMethod) {
+        case 0:
+            return extractors.store(file, destination, this);
+
+        case 8:
+            return extractors.deflate(file, destination, this);
+
+        default:
+            throw new Error('Unsupported compression type');
+        }
+    }
+
+    if (file.type === 'SymbolicLink') {
+        if (options.follow) {
+            return extractors.copy(file, destination, this, options.path);
+        } else {
+            return extractors.symlink(file, destination, this, options.path);
+        }
+    }
+
+    throw new Error('Unsupported file type "' + file.type + '"');
+};
+
+module.exports = DecompressZip;
+
+
+/***/ }),
 /* 393 */,
 /* 394 */
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
@@ -24753,9 +25548,132 @@ Glob.prototype._stat2 = function (f, abs, er, stat, cb) {
 /* 407 */,
 /* 408 */,
 /* 409 */
-/***/ (function() {
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
 
-// see dirs.js
+"use strict";
+
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
+    result["default"] = mod;
+    return result;
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const core = __importStar(__webpack_require__(470));
+const fs = __importStar(__webpack_require__(747));
+const util = __importStar(__webpack_require__(669));
+const path = __importStar(__webpack_require__(622));
+/**
+ * Checks whether a path exists.
+ * If the path does not exist, it will throw.
+ *
+ * @param     p         path to check
+ * @param     name      name only used in error message to identify the path
+ * @returns   void
+ */
+function _checkPath(p, name) {
+    core.debug(`check path : ${p}`);
+    if (!_exist(p)) {
+        throw new Error(util.format('Not found %s: %s', name, p));
+    }
+}
+exports._checkPath = _checkPath;
+/**
+ * Returns whether a path exists.
+ *
+ * @param     filepath      path to check
+ * @returns   boolean
+ */
+function _exist(filepath) {
+    let result = false;
+    try {
+        result = !!(filepath && fs.statSync(filepath) != null);
+    }
+    catch (err) {
+        if (err && err.code === 'ENOENT') {
+            result = false;
+        }
+        else {
+            throw err;
+        }
+    }
+    return result;
+}
+exports._exist = _exist;
+function _isRooted(p) {
+    p = _normalizeSeparators(p);
+    if (!p) {
+        throw new Error('isRooted() parameter "p" cannot be empty');
+    }
+    if (process.platform === 'win32') {
+        return (p.startsWith('\\') || /^[A-Z]:/i.test(p) // e.g. \ or \hello or \\hello
+        ); // e.g. C: or C:\hello
+    }
+    return p.startsWith('/'); // e.g. /hello
+}
+exports._isRooted = _isRooted;
+function _normalizeSeparators(p) {
+    p = p || '';
+    if (process.platform === 'win32') {
+        // convert slashes on Windows
+        p = p.replace(/\//g, '\\');
+        // remove redundant slashes
+        const isUnc = /^\\\\+[^\\]/.test(p); // e.g. \\hello
+        return (isUnc ? '\\' : '') + p.replace(/\\\\+/g, '\\'); // preserve leading // for UNC
+    }
+    // remove redundant slashes
+    return p.replace(/\/\/+/g, '/');
+}
+exports._normalizeSeparators = _normalizeSeparators;
+function _ensureRooted(root, p) {
+    if (!root) {
+        throw new Error('ensureRooted() parameter "root" cannot be empty');
+    }
+    if (!p) {
+        throw new Error('ensureRooted() parameter "p" cannot be empty');
+    }
+    if (_isRooted(p)) {
+        return p;
+    }
+    if (process.platform === 'win32' && root.match(/^[A-Z]:$/i)) {
+        // e.g. C:
+        return root + p;
+    }
+    // ensure root ends with a separator
+    if (root.endsWith('/') ||
+        (process.platform === 'win32' && root.endsWith('\\'))) {
+        // root already ends with a separator
+    }
+    else {
+        root += path.sep; // append separator
+    }
+    return root + p;
+}
+exports._ensureRooted = _ensureRooted;
+/**
+ * Gets a variable value that is defined on the build/release definition or set at runtime.
+ *
+ * @param     name     name of the variable to get
+ * @returns   string
+ */
+function _getVariable(name) {
+    const key = _getVariableKey(name);
+    const varval = process.env[key];
+    core.debug(`${name}=${varval}`);
+    return varval;
+}
+exports._getVariable = _getVariable;
+function _getVariableKey(name) {
+    if (!name) {
+        throw new Error(util.format('%s not supplied', 'name'));
+    }
+    return name
+        .replace(/\./g, '_')
+        .replace(/ /g, '_')
+        .toUpperCase();
+}
+exports._getVariableKey = _getVariableKey;
 
 
 /***/ }),
@@ -30986,108 +31904,7 @@ module.exports = pipeline;
 
 /***/ }),
 /* 507 */,
-/* 508 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-//import tl = require('azure-pipelines-task-lib/task');
-//import path = require('path');
-//import Q = require('q');
-//import fs = require('fs');
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
-    result["default"] = mod;
-    return result;
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-const utility = __importStar(__webpack_require__(884));
-const Q = __importStar(__webpack_require__(885));
-const core = __importStar(__webpack_require__(470));
-const path = __importStar(__webpack_require__(622));
-const fs = __importStar(__webpack_require__(747));
-const DecompressZip = __importStar(__webpack_require__(249));
-const archiver = __importStar(__webpack_require__(248));
-//var DecompressZip = require('decompress-zip');
-//var archiver = require('archiver');
-function unzip(zipLocation, unzipLocation) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const defer = Q.defer();
-        if (utility.exist(unzipLocation)) {
-            utility.rmRF(unzipLocation);
-        }
-        const unzipper = new DecompressZip(zipLocation);
-        core.debug(`extracting ${zipLocation} to ${unzipLocation}`);
-        unzipper.on('error', function (error) {
-            defer.reject(error);
-        });
-        unzipper.on('extract', function () {
-            core.debug(`extracted ${zipLocation} to ${unzipLocation} Successfully`);
-            defer.resolve(unzipLocation);
-        });
-        unzipper.extract({
-            path: unzipLocation
-        });
-        return defer.promise;
-    });
-}
-exports.unzip = unzip;
-function archiveFolder(folderPath, targetPath, zipName) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const defer = Q.defer();
-        core.debug(`Archiving ${folderPath} to ${zipName}`);
-        const outputZipPath = path.join(targetPath, zipName);
-        const output = fs.createWriteStream(outputZipPath);
-        const archive = archiver('zip');
-        output.on('close', function () {
-            core.debug(`Successfully created archive ${zipName}`);
-            defer.resolve(outputZipPath);
-        });
-        output.on('error', function (error) {
-            defer.reject(error);
-        });
-        archive.pipe(output);
-        archive.directory(folderPath, '/');
-        archive.finalize();
-        return defer.promise;
-    });
-}
-exports.archiveFolder = archiveFolder;
-/**
- *  Returns array of files present in archived package
- */
-function getArchivedEntries(archivedPackage) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const deferred = Q.defer();
-        const unzipper = new DecompressZip(archivedPackage);
-        unzipper.on('error', function (error) {
-            deferred.reject(error);
-        });
-        unzipper.on('list', function (files) {
-            const packageComponent = {
-                entries: files
-            };
-            deferred.resolve(packageComponent);
-        });
-        unzipper.list();
-        return deferred.promise;
-    });
-}
-exports.getArchivedEntries = getArchivedEntries;
-
-
-/***/ }),
+/* 508 */,
 /* 509 */,
 /* 510 */,
 /* 511 */
@@ -41128,7 +41945,7 @@ function __ncc_wildcard$0 (arg) {
   else if (arg === "ls.js") return __webpack_require__(705);
   else if (arg === "mkdir.js") return __webpack_require__(661);
   else if (arg === "mv.js") return __webpack_require__(809);
-  else if (arg === "popd.js") return __webpack_require__(409);
+  else if (arg === "popd.js") return __webpack_require__(249);
   else if (arg === "pushd.js") return __webpack_require__(188);
   else if (arg === "pwd.js") return __webpack_require__(359);
   else if (arg === "rm.js") return __webpack_require__(272);
@@ -43688,7 +44505,7 @@ function ReadableState(options, stream) {
   this.decoder = null;
   this.encoding = null;
   if (options.encoding) {
-    if (!StringDecoder) StringDecoder = __webpack_require__(869).StringDecoder;
+    if (!StringDecoder) StringDecoder = __webpack_require__(371).StringDecoder;
     this.decoder = new StringDecoder(options.encoding);
     this.encoding = options.encoding;
   }
@@ -43844,7 +44661,7 @@ Readable.prototype.isPaused = function () {
 
 // backwards compatibility.
 Readable.prototype.setEncoding = function (enc) {
-  if (!StringDecoder) StringDecoder = __webpack_require__(869).StringDecoder;
+  if (!StringDecoder) StringDecoder = __webpack_require__(371).StringDecoder;
   this._readableState.decoder = new StringDecoder(enc);
   this._readableState.encoding = enc;
   return this;
@@ -45911,302 +46728,96 @@ function upgradeChainsaw(saw) {
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
-// Copyright Joyent, Inc. and other Node contributors.
-//
-// Permission is hereby granted, free of charge, to any person obtaining a
-// copy of this software and associated documentation files (the
-// "Software"), to deal in the Software without restriction, including
-// without limitation the rights to use, copy, modify, merge, publish,
-// distribute, sublicense, and/or sell copies of the Software, and to permit
-// persons to whom the Software is furnished to do so, subject to the
-// following conditions:
-//
-// The above copyright notice and this permission notice shall be included
-// in all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
-// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
-// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
-// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
-// USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-
-
-/*<replacement>*/
-
-var Buffer = __webpack_require__(149).Buffer;
-/*</replacement>*/
-
-var isEncoding = Buffer.isEncoding || function (encoding) {
-  encoding = '' + encoding;
-  switch (encoding && encoding.toLowerCase()) {
-    case 'hex':case 'utf8':case 'utf-8':case 'ascii':case 'binary':case 'base64':case 'ucs2':case 'ucs-2':case 'utf16le':case 'utf-16le':case 'raw':
-      return true;
-    default:
-      return false;
-  }
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
 };
-
-function _normalizeEncoding(enc) {
-  if (!enc) return 'utf8';
-  var retried;
-  while (true) {
-    switch (enc) {
-      case 'utf8':
-      case 'utf-8':
-        return 'utf8';
-      case 'ucs2':
-      case 'ucs-2':
-      case 'utf16le':
-      case 'utf-16le':
-        return 'utf16le';
-      case 'latin1':
-      case 'binary':
-        return 'latin1';
-      case 'base64':
-      case 'ascii':
-      case 'hex':
-        return enc;
-      default:
-        if (retried) return; // undefined
-        enc = ('' + enc).toLowerCase();
-        retried = true;
-    }
-  }
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
+    result["default"] = mod;
+    return result;
 };
-
-// Do not cache `Buffer.isEncoding` when checking encoding names as some
-// modules monkey-patch it to support additional encodings
-function normalizeEncoding(enc) {
-  var nenc = _normalizeEncoding(enc);
-  if (typeof nenc !== 'string' && (Buffer.isEncoding === isEncoding || !isEncoding(enc))) throw new Error('Unknown encoding: ' + enc);
-  return nenc || enc;
+Object.defineProperty(exports, "__esModule", { value: true });
+const Q = __importStar(__webpack_require__(885));
+const core = __importStar(__webpack_require__(470));
+const path = __importStar(__webpack_require__(622));
+const fs = __importStar(__webpack_require__(747));
+const DecompressZip = __importStar(__webpack_require__(392));
+const archiver = __importStar(__webpack_require__(248));
+const tl = __importStar(__webpack_require__(184));
+function unzip(zipLocation, unzipLocation) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const defer = Q.defer();
+        if (tl.exist(unzipLocation)) {
+            tl.rmRF(unzipLocation);
+        }
+        const unzipper = new DecompressZip(zipLocation);
+        core.debug(`extracting ${zipLocation} to ${unzipLocation}`);
+        unzipper.on('error', function (error) {
+            defer.reject(error);
+        });
+        unzipper.on('extract', function () {
+            core.debug(`extracted ${zipLocation} to ${unzipLocation} Successfully`);
+            defer.resolve(unzipLocation);
+        });
+        unzipper.extract({
+            path: unzipLocation
+        });
+        return defer.promise;
+    });
 }
-
-// StringDecoder provides an interface for efficiently splitting a series of
-// buffers into a series of JS strings without breaking apart multi-byte
-// characters.
-exports.StringDecoder = StringDecoder;
-function StringDecoder(encoding) {
-  this.encoding = normalizeEncoding(encoding);
-  var nb;
-  switch (this.encoding) {
-    case 'utf16le':
-      this.text = utf16Text;
-      this.end = utf16End;
-      nb = 4;
-      break;
-    case 'utf8':
-      this.fillLast = utf8FillLast;
-      nb = 4;
-      break;
-    case 'base64':
-      this.text = base64Text;
-      this.end = base64End;
-      nb = 3;
-      break;
-    default:
-      this.write = simpleWrite;
-      this.end = simpleEnd;
-      return;
-  }
-  this.lastNeed = 0;
-  this.lastTotal = 0;
-  this.lastChar = Buffer.allocUnsafe(nb);
+exports.unzip = unzip;
+function archiveFolder(folderPath, targetPath, zipName) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const defer = Q.defer();
+        core.debug(`Archiving ${folderPath} to ${zipName}`);
+        const outputZipPath = path.join(targetPath, zipName);
+        const output = fs.createWriteStream(outputZipPath);
+        const archive = archiver('zip');
+        output.on('close', function () {
+            core.debug(`Successfully created archive ${zipName}`);
+            defer.resolve(outputZipPath);
+        });
+        output.on('error', function (error) {
+            defer.reject(error);
+        });
+        archive.pipe(output);
+        archive.directory(folderPath, '/');
+        archive.finalize();
+        return defer.promise;
+    });
 }
-
-StringDecoder.prototype.write = function (buf) {
-  if (buf.length === 0) return '';
-  var r;
-  var i;
-  if (this.lastNeed) {
-    r = this.fillLast(buf);
-    if (r === undefined) return '';
-    i = this.lastNeed;
-    this.lastNeed = 0;
-  } else {
-    i = 0;
-  }
-  if (i < buf.length) return r ? r + this.text(buf, i) : this.text(buf, i);
-  return r || '';
-};
-
-StringDecoder.prototype.end = utf8End;
-
-// Returns only complete characters in a Buffer
-StringDecoder.prototype.text = utf8Text;
-
-// Attempts to complete a partial non-UTF-8 character using bytes from a Buffer
-StringDecoder.prototype.fillLast = function (buf) {
-  if (this.lastNeed <= buf.length) {
-    buf.copy(this.lastChar, this.lastTotal - this.lastNeed, 0, this.lastNeed);
-    return this.lastChar.toString(this.encoding, 0, this.lastTotal);
-  }
-  buf.copy(this.lastChar, this.lastTotal - this.lastNeed, 0, buf.length);
-  this.lastNeed -= buf.length;
-};
-
-// Checks the type of a UTF-8 byte, whether it's ASCII, a leading byte, or a
-// continuation byte. If an invalid byte is detected, -2 is returned.
-function utf8CheckByte(byte) {
-  if (byte <= 0x7F) return 0;else if (byte >> 5 === 0x06) return 2;else if (byte >> 4 === 0x0E) return 3;else if (byte >> 3 === 0x1E) return 4;
-  return byte >> 6 === 0x02 ? -1 : -2;
+exports.archiveFolder = archiveFolder;
+/**
+ *  Returns array of files present in archived package
+ */
+function getArchivedEntries(archivedPackage) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const deferred = Q.defer();
+        const unzipper = new DecompressZip(archivedPackage);
+        unzipper.on('error', function (error) {
+            deferred.reject(error);
+        });
+        unzipper.on('list', function (files) {
+            const packageComponent = {
+                entries: files
+            };
+            deferred.resolve(packageComponent);
+        });
+        unzipper.list();
+        return deferred.promise;
+    });
 }
+exports.getArchivedEntries = getArchivedEntries;
 
-// Checks at most 3 bytes at the end of a Buffer in order to detect an
-// incomplete multi-byte UTF-8 character. The total number of bytes (2, 3, or 4)
-// needed to complete the UTF-8 character (if applicable) are returned.
-function utf8CheckIncomplete(self, buf, i) {
-  var j = buf.length - 1;
-  if (j < i) return 0;
-  var nb = utf8CheckByte(buf[j]);
-  if (nb >= 0) {
-    if (nb > 0) self.lastNeed = nb - 1;
-    return nb;
-  }
-  if (--j < i || nb === -2) return 0;
-  nb = utf8CheckByte(buf[j]);
-  if (nb >= 0) {
-    if (nb > 0) self.lastNeed = nb - 2;
-    return nb;
-  }
-  if (--j < i || nb === -2) return 0;
-  nb = utf8CheckByte(buf[j]);
-  if (nb >= 0) {
-    if (nb > 0) {
-      if (nb === 2) nb = 0;else self.lastNeed = nb - 3;
-    }
-    return nb;
-  }
-  return 0;
-}
-
-// Validates as many continuation bytes for a multi-byte UTF-8 character as
-// needed or are available. If we see a non-continuation byte where we expect
-// one, we "replace" the validated continuation bytes we've seen so far with
-// a single UTF-8 replacement character ('\ufffd'), to match v8's UTF-8 decoding
-// behavior. The continuation byte check is included three times in the case
-// where all of the continuation bytes for a character exist in the same buffer.
-// It is also done this way as a slight performance increase instead of using a
-// loop.
-function utf8CheckExtraBytes(self, buf, p) {
-  if ((buf[0] & 0xC0) !== 0x80) {
-    self.lastNeed = 0;
-    return '\ufffd';
-  }
-  if (self.lastNeed > 1 && buf.length > 1) {
-    if ((buf[1] & 0xC0) !== 0x80) {
-      self.lastNeed = 1;
-      return '\ufffd';
-    }
-    if (self.lastNeed > 2 && buf.length > 2) {
-      if ((buf[2] & 0xC0) !== 0x80) {
-        self.lastNeed = 2;
-        return '\ufffd';
-      }
-    }
-  }
-}
-
-// Attempts to complete a multi-byte UTF-8 character using bytes from a Buffer.
-function utf8FillLast(buf) {
-  var p = this.lastTotal - this.lastNeed;
-  var r = utf8CheckExtraBytes(this, buf, p);
-  if (r !== undefined) return r;
-  if (this.lastNeed <= buf.length) {
-    buf.copy(this.lastChar, p, 0, this.lastNeed);
-    return this.lastChar.toString(this.encoding, 0, this.lastTotal);
-  }
-  buf.copy(this.lastChar, p, 0, buf.length);
-  this.lastNeed -= buf.length;
-}
-
-// Returns all complete UTF-8 characters in a Buffer. If the Buffer ended on a
-// partial character, the character's bytes are buffered until the required
-// number of bytes are available.
-function utf8Text(buf, i) {
-  var total = utf8CheckIncomplete(this, buf, i);
-  if (!this.lastNeed) return buf.toString('utf8', i);
-  this.lastTotal = total;
-  var end = buf.length - (total - this.lastNeed);
-  buf.copy(this.lastChar, 0, end);
-  return buf.toString('utf8', i, end);
-}
-
-// For UTF-8, a replacement character is added when ending on a partial
-// character.
-function utf8End(buf) {
-  var r = buf && buf.length ? this.write(buf) : '';
-  if (this.lastNeed) return r + '\ufffd';
-  return r;
-}
-
-// UTF-16LE typically needs two bytes per character, but even if we have an even
-// number of bytes available, we need to check if we end on a leading/high
-// surrogate. In that case, we need to wait for the next two bytes in order to
-// decode the last character properly.
-function utf16Text(buf, i) {
-  if ((buf.length - i) % 2 === 0) {
-    var r = buf.toString('utf16le', i);
-    if (r) {
-      var c = r.charCodeAt(r.length - 1);
-      if (c >= 0xD800 && c <= 0xDBFF) {
-        this.lastNeed = 2;
-        this.lastTotal = 4;
-        this.lastChar[0] = buf[buf.length - 2];
-        this.lastChar[1] = buf[buf.length - 1];
-        return r.slice(0, -1);
-      }
-    }
-    return r;
-  }
-  this.lastNeed = 1;
-  this.lastTotal = 2;
-  this.lastChar[0] = buf[buf.length - 1];
-  return buf.toString('utf16le', i, buf.length - 1);
-}
-
-// For UTF-16LE we do not explicitly append special replacement characters if we
-// end on a partial character, we simply let v8 handle that.
-function utf16End(buf) {
-  var r = buf && buf.length ? this.write(buf) : '';
-  if (this.lastNeed) {
-    var end = this.lastTotal - this.lastNeed;
-    return r + this.lastChar.toString('utf16le', 0, end);
-  }
-  return r;
-}
-
-function base64Text(buf, i) {
-  var n = (buf.length - i) % 3;
-  if (n === 0) return buf.toString('base64', i);
-  this.lastNeed = 3 - n;
-  this.lastTotal = 3;
-  if (n === 1) {
-    this.lastChar[0] = buf[buf.length - 1];
-  } else {
-    this.lastChar[0] = buf[buf.length - 2];
-    this.lastChar[1] = buf[buf.length - 1];
-  }
-  return buf.toString('base64', i, buf.length - n);
-}
-
-function base64End(buf) {
-  var r = buf && buf.length ? this.write(buf) : '';
-  if (this.lastNeed) return r + this.lastChar.toString('base64', 0, 3 - this.lastNeed);
-  return r;
-}
-
-// Pass bytes on through for single-byte encodings (e.g. ascii, latin1, hex)
-function simpleWrite(buf) {
-  return buf.toString(this.encoding);
-}
-
-function simpleEnd(buf) {
-  return buf && buf.length ? this.write(buf) : '';
-}
 
 /***/ }),
 /* 870 */,
@@ -46215,7 +46826,87 @@ function simpleEnd(buf) {
 /* 873 */,
 /* 874 */,
 /* 875 */,
-/* 876 */,
+/* 876 */
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
+    result["default"] = mod;
+    return result;
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const core = __importStar(__webpack_require__(470));
+const path = __importStar(__webpack_require__(622));
+const os = __importStar(__webpack_require__(87));
+const tl = __importStar(__webpack_require__(184));
+function firstWildcardIndex(str) {
+    const idx = str.indexOf('*');
+    const idxOfWildcard = str.indexOf('?');
+    if (idxOfWildcard > -1) {
+        return idx > -1 ? Math.min(idx, idxOfWildcard) : idxOfWildcard;
+    }
+    return idx;
+}
+function findfiles(filepath) {
+    core.debug(`Finding files matching input: ${filepath}`);
+    let filesList;
+    if (!filepath.includes('*') && !filepath.includes('?')) {
+        // No pattern found, check literal path to a single file
+        if (tl.exist(filepath)) {
+            filesList = [filepath];
+        }
+        else {
+            core.debug(`No matching files were found with search pattern: ${filepath}`);
+            return [];
+        }
+    }
+    else {
+        // Find app files matching the specified pattern
+        core.debug(`Matching glob pattern: ${filepath}`);
+        // First find the most complete path without any matching patterns
+        const idx = firstWildcardIndex(filepath);
+        core.debug(`Index of first wildcard: ${idx}`);
+        const slicedPath = filepath.slice(0, idx);
+        let findPathRoot = path.dirname(slicedPath);
+        if (slicedPath.endsWith('\\') || slicedPath.endsWith('/')) {
+            findPathRoot = slicedPath;
+        }
+        core.debug(`find root dir: ${findPathRoot}`);
+        // Now we get a list of all files under this root
+        const allFiles = tl.find(findPathRoot);
+        // Now matching the pattern against all files
+        filesList = tl.match(allFiles, filepath, '', {
+            matchBase: true,
+            nocase: !!os.type().match(/^Win/)
+        });
+        // Fail if no matching files were found
+        if (!filesList || filesList.length === 0) {
+            core.debug(`No matching files were found with search pattern: ${filepath}`);
+            return [];
+        }
+    }
+    return filesList;
+}
+exports.findfiles = findfiles;
+function getFileNameFromPath(filePath, extension) {
+    const isWindows = os.type().match(/^Win/);
+    let fileName;
+    if (isWindows) {
+        fileName = path.win32.basename(filePath, extension);
+    }
+    else {
+        fileName = path.posix.basename(filePath, extension);
+    }
+    return fileName;
+}
+exports.getFileNameFromPath = getFileNameFromPath;
+
+
+/***/ }),
 /* 877 */
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
@@ -46694,662 +47385,7 @@ PassThrough.prototype._transform = function(chunk, encoding, cb) {
 
 /***/ }),
 /* 883 */,
-/* 884 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
-    result["default"] = mod;
-    return result;
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-const core = __importStar(__webpack_require__(470));
-const fs = __importStar(__webpack_require__(747));
-const util = __importStar(__webpack_require__(669));
-const path = __importStar(__webpack_require__(622));
-const minimatch = __importStar(__webpack_require__(93));
-const os = __importStar(__webpack_require__(87));
-const childProcess = __importStar(__webpack_require__(129));
-const shell = __importStar(__webpack_require__(739));
-/**
- * Gets the value of an input and converts to a bool.  Convenience.
- * If required is true and the value is not set, it will throw.
- * If required is false and the value is not set, returns false.
- *
- * @param     name     name of the bool input to get
- * @param     options  whether input is required.  optional, defaults to false
- * @returns   boolean
- */
-function getBoolInput(name, options) {
-    return (core.getInput(name, options) || '').toUpperCase() === 'TRUE';
-}
-exports.getBoolInput = getBoolInput;
-/**
- * Gets the value of a path input
- * It will be quoted for you if it isn't already and contains spaces
- * If required is true and the value is not set, it will throw.
- * If check is true and the path does not exist, it will throw.
- *
- * @param     name      name of the input to get
- * @param     options   whether input is required.  optional, defaults to false
- * @param     check     whether path is checked.  optional, defaults to false
- * @returns   string
- */
-function getPathInput(name, options, check) {
-    const inval = core.getInput(name, options);
-    if (inval) {
-        if (check) {
-            checkPath(inval, name);
-        }
-    }
-    return inval;
-}
-exports.getPathInput = getPathInput;
-/**
- * Checks whether a path exists.
- * If the path does not exist, it will throw.
- *
- * @param     p         path to check
- * @param     name      name only used in error message to identify the path
- * @returns   void
- */
-function checkPath(p, name) {
-    core.debug(`check path : ${p}`);
-    if (!exist(p)) {
-        throw new Error(util.format('Not found %s: %s', name, p));
-    }
-}
-exports.checkPath = checkPath;
-/**
- * Returns whether a path exists.
- *
- * @param     filepath      path to check
- * @returns   boolean
- */
-function exist(filepath) {
-    let result = false;
-    try {
-        result = !!(filepath && fs.statSync(filepath) != null);
-    }
-    catch (err) {
-        if (err && err.code === 'ENOENT') {
-            result = false;
-        }
-        else {
-            throw err;
-        }
-    }
-    return result;
-}
-exports.exist = exist;
-/**
- * Gets the value of an input and splits the value using a delimiter (space, comma, etc).
- * Empty values are removed.  This function is useful for splitting an input containing a simple
- * list of items - such as build targets.
- * IMPORTANT: Do not use this function for splitting additional args!  Instead use argString(), which
- * follows normal argument splitting rules and handles values encapsulated by quotes.
- * If required is true and the value is not set, it will throw.
- *
- * @param     name     name of the input to get
- * @param     delim    delimiter to split on
- * @param     required whether input is required.  optional, defaults to false
- * @returns   string[]
- */
-function getDelimitedInput(name, delim, options) {
-    const inputVal = core.getInput(name, options);
-    if (!inputVal) {
-        return [];
-    }
-    const result = [];
-    for (const x of inputVal.split(delim)) {
-        if (x) {
-            result.push(x);
-        }
-    }
-    return result;
-}
-exports.getDelimitedInput = getDelimitedInput;
-function firstWildcardIndex(str) {
-    const idx = str.indexOf('*');
-    const idxOfWildcard = str.indexOf('?');
-    if (idxOfWildcard > -1) {
-        return idx > -1 ? Math.min(idx, idxOfWildcard) : idxOfWildcard;
-    }
-    return idx;
-}
-function findfiles(filepath) {
-    core.debug(`Finding files matching input: ${filepath}`);
-    let filesList;
-    if (!filepath.includes('*') && !filepath.includes('?')) {
-        // No pattern found, check literal path to a single file
-        if (exist(filepath)) {
-            filesList = [filepath];
-        }
-        else {
-            core.debug(`No matching files were found with search pattern: ${filepath}`);
-            return [];
-        }
-    }
-    else {
-        // Find app files matching the specified pattern
-        core.debug(`Matching glob pattern: ${filepath}`);
-        // First find the most complete path without any matching patterns
-        const idx = firstWildcardIndex(filepath);
-        core.debug(`Index of first wildcard: ${idx}`);
-        const slicedPath = filepath.slice(0, idx);
-        let findPathRoot = path.dirname(slicedPath);
-        if (slicedPath.endsWith('\\') || slicedPath.endsWith('/')) {
-            findPathRoot = slicedPath;
-        }
-        core.debug(`find root dir: ${findPathRoot}`);
-        // Now we get a list of all files under this root
-        const allFiles = find(findPathRoot);
-        // Now matching the pattern against all files
-        filesList = match(allFiles, filepath, '', {
-            matchBase: true,
-            nocase: !!os.type().match(/^Win/)
-        });
-        // Fail if no matching files were found
-        if (!filesList || filesList.length === 0) {
-            core.debug(`No matching files were found with search pattern: ${filepath}`);
-            return [];
-        }
-    }
-    return filesList;
-}
-exports.findfiles = findfiles;
-function _getDefaultFindOptions() {
-    return {
-        allowBrokenSymbolicLinks: false,
-        followSpecifiedSymbolicLink: true,
-        followSymbolicLinks: true
-    };
-}
-function _debugFindOptions(options) {
-    core.debug(`findOptions.allowBrokenSymbolicLinks: '${options.allowBrokenSymbolicLinks}'`);
-    core.debug(`findOptions.followSpecifiedSymbolicLink: '${options.followSpecifiedSymbolicLink}'`);
-    core.debug(`findOptions.followSymbolicLinks: '${options.followSymbolicLinks}'`);
-}
-class FindItem {
-    constructor(filepath, level) {
-        this.path = filepath;
-        this.level = level;
-    }
-}
-/**
- * Recursively finds all paths a given path. Returns an array of paths.
- *
- * @param     findPath  path to search
- * @param     options   optional. defaults to { followSymbolicLinks: true }. following soft links is generally appropriate unless deleting files.
- * @returns   string[]
- */
-function find(findPath, options) {
-    if (!findPath) {
-        core.debug('no path specified');
-        return [];
-    }
-    // normalize the path, otherwise the first result is inconsistently formatted from the rest of the results
-    // because path.join() performs normalization.
-    findPath = path.normalize(findPath);
-    // debug trace the parameters
-    core.debug(`findPath: '${findPath}'`);
-    options = options || _getDefaultFindOptions();
-    _debugFindOptions(options);
-    // return empty if not exists
-    try {
-        fs.lstatSync(findPath);
-    }
-    catch (err) {
-        if (err.code === 'ENOENT') {
-            core.debug('0 results');
-            return [];
-        }
-        throw err;
-    }
-    try {
-        const result = [];
-        // push the first item
-        const stack = [new FindItem(findPath, 1)];
-        const traversalChain = []; // used to detect cycles
-        while (stack.length) {
-            // pop the next item and push to the result array
-            const item = stack.pop(); // non-null because `stack.length` was truthy
-            if (item) {
-                result.push(item.path);
-                // stat the item.  the stat info is used further below to determine whether to traverse deeper
-                //
-                // stat returns info about the target of a symlink (or symlink chain),
-                // lstat returns info about a symlink itself
-                let stats;
-                if (options.followSymbolicLinks) {
-                    try {
-                        // use stat (following all symlinks)
-                        stats = fs.statSync(item.path);
-                    }
-                    catch (err) {
-                        if (err.code === 'ENOENT' && options.allowBrokenSymbolicLinks) {
-                            // fallback to lstat (broken symlinks allowed)
-                            stats = fs.lstatSync(item.path);
-                            core.debug(`  ${item.path} (broken symlink)`);
-                        }
-                        else {
-                            throw err;
-                        }
-                    }
-                }
-                else if (options.followSpecifiedSymbolicLink && result.length === 1) {
-                    try {
-                        // use stat (following symlinks for the specified path and this is the specified path)
-                        stats = fs.statSync(item.path);
-                    }
-                    catch (err) {
-                        if (err.code === 'ENOENT' && options.allowBrokenSymbolicLinks) {
-                            // fallback to lstat (broken symlinks allowed)
-                            stats = fs.lstatSync(item.path);
-                            core.debug(`  ${item.path} (broken symlink)`);
-                        }
-                        else {
-                            throw err;
-                        }
-                    }
-                }
-                else {
-                    // use lstat (not following symlinks)
-                    stats = fs.lstatSync(item.path);
-                }
-                // note, isDirectory() returns false for the lstat of a symlink
-                if (stats.isDirectory()) {
-                    core.debug(`  ${item.path} (directory)`);
-                    if (options.followSymbolicLinks) {
-                        // get the realpath
-                        const realPath = fs.realpathSync(item.path);
-                        // fixup the traversal chain to match the item level
-                        while (traversalChain.length >= item.level) {
-                            traversalChain.pop();
-                        }
-                        // test for a cycle
-                        if (traversalChain.some((x) => x === realPath)) {
-                            core.debug('    cycle detected');
-                            continue;
-                        }
-                        // update the traversal chain
-                        traversalChain.push(realPath);
-                    }
-                    // push the child items in reverse onto the stack
-                    const childLevel = item.level + 1;
-                    const childItems = fs
-                        .readdirSync(item.path)
-                        .map((childName) => new FindItem(path.join(item.path, childName), childLevel));
-                    for (let i = childItems.length - 1; i >= 0; i--) {
-                        stack.push(childItems[i]);
-                    }
-                }
-                else {
-                    core.debug(`  ${item.path} (file)`);
-                }
-            }
-        }
-        core.debug(`${result.length} results`);
-        return result;
-    }
-    catch (err) {
-        throw new Error(util.format('Failed %s: %s', 'find', err.message));
-    }
-}
-exports.find = find;
-function _debugMatchOptions(options) {
-    core.debug(`matchOptions.debug: '${options.debug}'`);
-    core.debug(`matchOptions.nobrace: '${options.nobrace}'`);
-    core.debug(`matchOptions.noglobstar: '${options.noglobstar}'`);
-    core.debug(`matchOptions.dot: '${options.dot}'`);
-    core.debug(`matchOptions.noext: '${options.noext}'`);
-    core.debug(`matchOptions.nocase: '${options.nocase}'`);
-    core.debug(`matchOptions.nonull: '${options.nonull}'`);
-    core.debug(`matchOptions.matchBase: '${options.matchBase}'`);
-    core.debug(`matchOptions.nocomment: '${options.nocomment}'`);
-    core.debug(`matchOptions.nonegate: '${options.nonegate}'`);
-    core.debug(`matchOptions.flipNegate: '${options.flipNegate}'`);
-}
-function _getDefaultMatchOptions() {
-    return {
-        debug: false,
-        nobrace: true,
-        noglobstar: false,
-        dot: true,
-        noext: false,
-        nocase: process.platform === 'win32',
-        nonull: false,
-        matchBase: false,
-        nocomment: false,
-        nonegate: false,
-        flipNegate: false
-    };
-}
-function _cloneMatchOptions(matchOptions) {
-    return {
-        debug: matchOptions.debug,
-        nobrace: matchOptions.nobrace,
-        noglobstar: matchOptions.noglobstar,
-        dot: matchOptions.dot,
-        noext: matchOptions.noext,
-        nocase: matchOptions.nocase,
-        nonull: matchOptions.nonull,
-        matchBase: matchOptions.matchBase,
-        nocomment: matchOptions.nocomment,
-        nonegate: matchOptions.nonegate,
-        flipNegate: matchOptions.flipNegate
-    };
-}
-exports._cloneMatchOptions = _cloneMatchOptions;
-/**
- * Applies glob patterns to a list of paths. Supports interleaved exclude patterns.
- *
- * @param  list         array of paths
- * @param  patterns     patterns to apply. supports interleaved exclude patterns.
- * @param  patternRoot  optional. default root to apply to unrooted patterns. not applied to basename-only patterns when matchBase:true.
- * @param  options      optional. defaults to { dot: true, nobrace: true, nocase: process.platform == 'win32' }.
- */
-function match(list, patterns, patternRoot, options) {
-    // trace parameters
-    core.debug(`patternRoot: '${patternRoot}'`);
-    options = options || _getDefaultMatchOptions(); // default match options
-    _debugMatchOptions(options);
-    // convert pattern to an array
-    if (typeof patterns === 'string') {
-        patterns = [patterns];
-    }
-    // hashtable to keep track of matches
-    const map = {};
-    const originalOptions = options;
-    for (let pattern of patterns) {
-        core.debug(`pattern: '${pattern}'`);
-        // trim and skip empty
-        pattern = (pattern || '').trim();
-        if (!pattern) {
-            core.debug('skipping empty pattern');
-            continue;
-        }
-        // clone match options
-        options = _cloneMatchOptions(originalOptions);
-        // skip comments
-        if (!options.nocomment && pattern.startsWith('#')) {
-            core.debug('skipping comment');
-            continue;
-        }
-        // set nocomment - brace expansion could result in a leading '#'
-        options.nocomment = true;
-        // determine whether pattern is include or exclude
-        let negateCount = 0;
-        if (!options.nonegate) {
-            while (pattern.charAt(negateCount) === '!') {
-                negateCount++;
-            }
-            pattern = pattern.substring(negateCount); // trim leading '!'
-            if (negateCount) {
-                core.debug(`trimmed leading '!'. pattern: '${pattern}'`);
-            }
-        }
-        const isIncludePattern = negateCount === 0 ||
-            (negateCount % 2 === 0 && !options.flipNegate) ||
-            (negateCount % 2 === 1 && options.flipNegate);
-        // set nonegate - brace expansion could result in a leading '!'
-        options.nonegate = true;
-        options.flipNegate = false;
-        // expand braces - required to accurately root patterns
-        let expanded;
-        const preExpanded = pattern;
-        if (options.nobrace) {
-            expanded = [pattern];
-        }
-        else {
-            // convert slashes on Windows before calling braceExpand(). unfortunately this means braces cannot
-            // be escaped on Windows, this limitation is consistent with current limitations of minimatch (3.0.3).
-            core.debug('expanding braces');
-            const convertedPattern = process.platform === 'win32' ? pattern.replace(/\\/g, '/') : pattern;
-            expanded = minimatch.braceExpand(convertedPattern);
-        }
-        // set nobrace
-        options.nobrace = true;
-        for (let pat of expanded) {
-            if (expanded.length !== 1 || pat !== preExpanded) {
-                core.debug(`pattern: '${pat}'`);
-            }
-            // trim and skip empty
-            pat = (pat || '').trim();
-            if (!pat) {
-                core.debug('skipping empty pattern');
-                continue;
-            }
-            // root the pattern when all of the following conditions are true:
-            if (patternRoot && // patternRoot supplied
-                _isRooted(pat) && // AND pattern not rooted
-                // AND matchBase:false or not basename only
-                (!options.matchBase ||
-                    (process.platform === 'win32'
-                        ? pat.replace(/\\/g, '/')
-                        : pat).includes('/'))) {
-                pat = _ensureRooted(patternRoot, pat);
-                core.debug(`rooted pattern: '${pat}'`);
-            }
-            if (isIncludePattern) {
-                // apply the pattern
-                core.debug('applying include pattern against original list');
-                const matchResults = minimatch.match(list, pat, options);
-                core.debug(`${matchResults.length} matches`);
-                // union the results
-                for (const matchResult of matchResults) {
-                    map[matchResult] = true;
-                }
-            }
-            else {
-                // apply the pattern
-                core.debug('applying exclude pattern against original list');
-                const matchResults = minimatch.match(list, pat, options);
-                core.debug(`${matchResults.length} matches`);
-                // substract the results
-                for (const matchResult of matchResults) {
-                    delete map[matchResult];
-                }
-            }
-        }
-    }
-    // return a filtered version of the original list (preserves order and prevents duplication)
-    const result = list.filter((item) => map.hasOwnProperty(item));
-    core.debug(`${result.length} final results`);
-    return result;
-}
-exports.match = match;
-function _isRooted(p) {
-    p = _normalizeSeparators(p);
-    if (!p) {
-        throw new Error('isRooted() parameter "p" cannot be empty');
-    }
-    if (process.platform === 'win32') {
-        return (p.startsWith('\\') || /^[A-Z]:/i.test(p) // e.g. \ or \hello or \\hello
-        ); // e.g. C: or C:\hello
-    }
-    return p.startsWith('/'); // e.g. /hello
-}
-exports._isRooted = _isRooted;
-function _normalizeSeparators(p) {
-    p = p || '';
-    if (process.platform === 'win32') {
-        // convert slashes on Windows
-        p = p.replace(/\//g, '\\');
-        // remove redundant slashes
-        const isUnc = /^\\\\+[^\\]/.test(p); // e.g. \\hello
-        return (isUnc ? '\\' : '') + p.replace(/\\\\+/g, '\\'); // preserve leading // for UNC
-    }
-    // remove redundant slashes
-    return p.replace(/\/\/+/g, '/');
-}
-exports._normalizeSeparators = _normalizeSeparators;
-function _ensureRooted(root, p) {
-    if (!root) {
-        throw new Error('ensureRooted() parameter "root" cannot be empty');
-    }
-    if (!p) {
-        throw new Error('ensureRooted() parameter "p" cannot be empty');
-    }
-    if (_isRooted(p)) {
-        return p;
-    }
-    if (process.platform === 'win32' && root.match(/^[A-Z]:$/i)) {
-        // e.g. C:
-        return root + p;
-    }
-    // ensure root ends with a separator
-    if (root.endsWith('/') ||
-        (process.platform === 'win32' && root.endsWith('\\'))) {
-        // root already ends with a separator
-    }
-    else {
-        root += path.sep; // append separator
-    }
-    return root + p;
-}
-exports._ensureRooted = _ensureRooted;
-function getFileNameFromPath(filePath, extension) {
-    const isWindows = os.type().match(/^Win/);
-    let fileName;
-    if (isWindows) {
-        fileName = path.win32.basename(filePath, extension);
-    }
-    else {
-        fileName = path.posix.basename(filePath, extension);
-    }
-    return fileName;
-}
-exports.getFileNameFromPath = getFileNameFromPath;
-/**
- * Gets a variable value that is defined on the build/release definition or set at runtime.
- *
- * @param     name     name of the variable to get
- * @returns   string
- */
-function getVariable(name) {
-    const key = getVariableKey(name);
-    const varval = process.env[key];
-    core.debug(`${name}=${varval}`);
-    return varval;
-}
-exports.getVariable = getVariable;
-function getVariableKey(name) {
-    if (!name) {
-        throw new Error(util.format('%s not supplied', 'name'));
-    }
-    return name
-        .replace(/\./g, '_')
-        .replace(/ /g, '_')
-        .toUpperCase();
-}
-exports.getVariableKey = getVariableKey;
-/**
- * Remove a path recursively with force
- *
- * @param     inputPath path to remove
- * @throws    when the file or directory exists but could not be deleted.
- */
-function rmRF(inputPath) {
-    core.debug(`rm -rf ${inputPath}`);
-    if (getPlatform() === Platform.Windows) {
-        // Node doesn't provide a delete operation, only an unlink function. This means that if the file is being used by another
-        // program (e.g. antivirus), it won't be deleted. To address this, we shell out the work to rd/del.
-        try {
-            if (fs.statSync(inputPath).isDirectory()) {
-                core.debug(`removing directory ${inputPath}`);
-                childProcess.execSync(`rd /s /q "${inputPath}"`);
-            }
-            else {
-                core.debug(`removing file ${inputPath}`);
-                childProcess.execSync(`del /f /a "${inputPath}"`);
-            }
-        }
-        catch (err) {
-            // if you try to delete a file that doesn't exist, desired result is achieved
-            // other errors are valid
-            if (err.code !== 'ENOENT') {
-                throw new Error(util.format('Failed %s: %s', 'rmRF', err.message));
-            }
-        }
-        // Shelling out fails to remove a symlink folder with missing source, this unlink catches that
-        try {
-            fs.unlinkSync(inputPath);
-        }
-        catch (err) {
-            // if you try to delete a file that doesn't exist, desired result is achieved
-            // other errors are valid
-            if (err.code !== 'ENOENT') {
-                throw new Error(util.format('Failed %s: %s', 'rmRF', err.message));
-            }
-        }
-    }
-    else {
-        // get the lstats in order to workaround a bug in shelljs@0.3.0 where symlinks
-        // with missing targets are not handled correctly by "rm('-rf', path)"
-        let lstats;
-        try {
-            lstats = fs.lstatSync(inputPath);
-        }
-        catch (err) {
-            // if you try to delete a file that doesn't exist, desired result is achieved
-            // other errors are valid
-            if (err.code === 'ENOENT') {
-                return;
-            }
-            throw new Error(util.format('Failed %s: %s', 'rmRF', err.message));
-        }
-        if (lstats.isDirectory()) {
-            core.debug('removing directory');
-            shell.rm('-rf', inputPath);
-            const errMsg = shell.error();
-            if (errMsg) {
-                throw new Error(util.format('Failed %s: %s', 'rmRF', errMsg));
-            }
-            return;
-        }
-        core.debug('removing file');
-        try {
-            fs.unlinkSync(inputPath);
-        }
-        catch (err) {
-            throw new Error(util.format('Failed %s: %s', 'rmRF', err.message));
-        }
-    }
-}
-exports.rmRF = rmRF;
-/**
- * Determine the operating system the build agent is running on.
- * @returns {Platform}
- * @throws {Error} Platform is not supported by our agent
- */
-function getPlatform() {
-    switch (process.platform) {
-        case 'win32':
-            return Platform.Windows;
-        case 'darwin':
-            return Platform.MacOS;
-        case 'linux':
-            return Platform.Linux;
-        default:
-            throw Error(util.format('Platform not supported: %s', process.platform));
-    }
-}
-exports.getPlatform = getPlatform;
-/** Platforms supported by our build agent */
-var Platform;
-(function (Platform) {
-    Platform[Platform["Windows"] = 0] = "Windows";
-    Platform[Platform["MacOS"] = 1] = "MacOS";
-    Platform[Platform["Linux"] = 2] = "Linux";
-})(Platform = exports.Platform || (exports.Platform = {}));
-
-
-/***/ }),
+/* 884 */,
 /* 885 */
 /***/ (function(module) {
 

@@ -4,10 +4,11 @@
 //var webCommonUtility = require('webdeployment-common-v2/utility.js');
 
 import * as core from '@actions/core'
-import * as utility from './ActionUtility'
-import * as Constant from '../operations/Constants'
-import {Package, PackageType} from './packageUtility'
+import * as Constant from './Constants'
+import {Package, PackageType} from '../webdeployment-common-v2/packageUtility'
 import * as util from 'util'
+import * as tl from '../task-lib/task'
+import * as webCommonUtility from '../webdeployment-common-v2/utility'
 
 export enum DeploymentType {
   webDeploy,
@@ -21,18 +22,18 @@ export const TaskParametersUtility = {
     const taskParameters: TaskParameters = {
       ConnectionType: core.getInput('ConnectionType', {required: true}),
       WebAppKind: core.getInput('WebAppKind'),
-      DeployToSlotOrASEFlag: utility.getBoolInput('DeployToSlotOrASEFlag'),
-      GenerateWebConfig: utility.getBoolInput('GenerateWebConfig'),
+      DeployToSlotOrASEFlag: tl.getBoolInput('DeployToSlotOrASEFlag'),
+      GenerateWebConfig: tl.getBoolInput('GenerateWebConfig'),
       WebConfigParameters: core.getInput('WebConfigParameters'),
-      XmlTransformation: utility.getBoolInput('XmlTransformation'),
-      JSONFiles: utility.getDelimitedInput('JSONFiles', '\n'),
-      XmlVariableSubstitution: utility.getBoolInput('XmlVariableSubstitution'),
-      TakeAppOfflineFlag: utility.getBoolInput('TakeAppOfflineFlag'),
-      RenameFilesFlag: utility.getBoolInput('RenameFilesFlag'),
+      XmlTransformation: tl.getBoolInput('XmlTransformation'),
+      JSONFiles: tl.getDelimitedInput('JSONFiles', '\n'),
+      XmlVariableSubstitution: tl.getBoolInput('XmlVariableSubstitution'),
+      TakeAppOfflineFlag: tl.getBoolInput('TakeAppOfflineFlag'),
+      RenameFilesFlag: tl.getBoolInput('RenameFilesFlag'),
       AdditionalArguments: core.getInput('AdditionalArguments'),
       ScriptType: core.getInput('ScriptType'),
       InlineScript: core.getInput('InlineScript'),
-      ScriptPath: utility.getPathInput('ScriptPath'),
+      ScriptPath: tl.getPathInput('ScriptPath'),
       DockerNamespace: core.getInput('DockerNamespace'),
       AppSettings: core.getInput('AppSettings'),
       StartupCommand: core.getInput('StartupCommand'),
@@ -69,7 +70,7 @@ export const TaskParametersUtility = {
 
     if (!taskParameters.isContainerWebApp) {
       taskParameters.Package = new Package(
-        utility.getPathInput('Package', {required: true})
+        tl.getPathInput('Package', {required: true})
       )
       core.debug(
         `intially web config parameters :${taskParameters.WebConfigParameters}`
@@ -93,7 +94,7 @@ export const TaskParametersUtility = {
             '-JAR_PATH D:\\home\\site\\wwwroot\\*.jar'
           )
         ) {
-          const jarPath = utility.getFileNameFromPath(
+          const jarPath = webCommonUtility.getFileNameFromPath(
             taskParameters.Package.getPath()
           )
           taskParameters.WebConfigParameters = taskParameters.WebConfigParameters.replace(
@@ -101,7 +102,7 @@ export const TaskParametersUtility = {
             jarPath
           )
         } else if (!taskParameters.WebConfigParameters.includes('-JAR_PATH ')) {
-          const jarPath = utility.getFileNameFromPath(
+          const jarPath = webCommonUtility.getFileNameFromPath(
             taskParameters.Package.getPath()
           )
           taskParameters.WebConfigParameters += ` -JAR_PATH ${jarPath}`
@@ -123,7 +124,7 @@ export const TaskParametersUtility = {
     }
 
     taskParameters.UseWebDeploy = !taskParameters.isLinuxApp
-      ? utility.getBoolInput('UseWebDeploy')
+      ? tl.getBoolInput('UseWebDeploy')
       : false
 
     if (taskParameters.isLinuxApp && taskParameters.isBuiltinLinuxWebApp) {
@@ -149,13 +150,11 @@ export const TaskParametersUtility = {
         core.getInput('DeploymentType')
       )
       if (taskParameters.DeploymentType === DeploymentType.webDeploy) {
-        taskParameters.RemoveAdditionalFilesFlag = utility.getBoolInput(
+        taskParameters.RemoveAdditionalFilesFlag = tl.getBoolInput(
           'RemoveAdditionalFilesFlag'
         )
-        taskParameters.SetParametersFile = utility.getPathInput(
-          'SetParametersFile'
-        )
-        taskParameters.ExcludeFilesFromAppDataFlag = utility.getBoolInput(
+        taskParameters.SetParametersFile = tl.getPathInput('SetParametersFile')
+        taskParameters.ExcludeFilesFromAppDataFlag = tl.getBoolInput(
           'ExcludeFilesFromAppDataFlag'
         )
         taskParameters.AdditionalArguments =
@@ -185,15 +184,13 @@ export const TaskParametersUtility = {
       {required: true}
     )
     taskParameters.Package = new Package(
-      utility.getPathInput('Package', {required: true})
+      tl.getPathInput('Package', {required: true})
     )
     taskParameters.AdditionalArguments = '-retryAttempts:6 -retryInterval:10000'
   },
 
   UpdateLinuxAppTypeScriptParameters(taskParameters: TaskParameters) {
-    const retryTimeoutValue = utility.getVariable(
-      'appservicedeploy.retrytimeout'
-    )
+    const retryTimeoutValue = tl.getVariable('appservicedeploy.retrytimeout')
     const timeoutAppSettings = retryTimeoutValue
       ? Number(retryTimeoutValue) * 60
       : 1800

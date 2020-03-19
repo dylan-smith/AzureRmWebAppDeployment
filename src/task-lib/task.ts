@@ -1,11 +1,14 @@
 import * as core from '@actions/core'
+import * as im from './internal'
 import * as fs from 'fs'
 import * as util from 'util'
 import * as path from 'path'
 import * as minimatch from 'minimatch'
-import * as os from 'os'
 import * as childProcess from 'child_process'
 import * as shell from 'shelljs'
+
+export const getVariable = im._getVariable
+export const exist = im._exist
 
 /**
  * Gets the value of an input and converts to a bool.  Convenience.
@@ -42,46 +45,11 @@ export function getPathInput(
   const inval = core.getInput(name, options)
   if (inval) {
     if (check) {
-      checkPath(inval, name)
+      im._checkPath(inval, name)
     }
   }
 
   return inval
-}
-
-/**
- * Checks whether a path exists.
- * If the path does not exist, it will throw.
- *
- * @param     p         path to check
- * @param     name      name only used in error message to identify the path
- * @returns   void
- */
-export function checkPath(p: string, name: string): void {
-  core.debug(`check path : ${p}`)
-  if (!exist(p)) {
-    throw new Error(util.format('Not found %s: %s', name, p))
-  }
-}
-
-/**
- * Returns whether a path exists.
- *
- * @param     filepath      path to check
- * @returns   boolean
- */
-export function exist(filepath: string): boolean {
-  let result = false
-  try {
-    result = !!(filepath && fs.statSync(filepath) != null)
-  } catch (err) {
-    if (err && err.code === 'ENOENT') {
-      result = false
-    } else {
-      throw err
-    }
-  }
-  return result
 }
 
 /**
@@ -115,66 +83,6 @@ export function getDelimitedInput(
   }
 
   return result
-}
-
-function firstWildcardIndex(str: string): number {
-  const idx = str.indexOf('*')
-
-  const idxOfWildcard = str.indexOf('?')
-  if (idxOfWildcard > -1) {
-    return idx > -1 ? Math.min(idx, idxOfWildcard) : idxOfWildcard
-  }
-
-  return idx
-}
-
-export function findfiles(filepath: string): string[] {
-  core.debug(`Finding files matching input: ${filepath}`)
-
-  let filesList: string[]
-  if (!filepath.includes('*') && !filepath.includes('?')) {
-    // No pattern found, check literal path to a single file
-    if (exist(filepath)) {
-      filesList = [filepath]
-    } else {
-      core.debug(
-        `No matching files were found with search pattern: ${filepath}`
-      )
-      return []
-    }
-  } else {
-    // Find app files matching the specified pattern
-    core.debug(`Matching glob pattern: ${filepath}`)
-
-    // First find the most complete path without any matching patterns
-    const idx = firstWildcardIndex(filepath)
-    core.debug(`Index of first wildcard: ${idx}`)
-    const slicedPath = filepath.slice(0, idx)
-    let findPathRoot = path.dirname(slicedPath)
-    if (slicedPath.endsWith('\\') || slicedPath.endsWith('/')) {
-      findPathRoot = slicedPath
-    }
-
-    core.debug(`find root dir: ${findPathRoot}`)
-
-    // Now we get a list of all files under this root
-    const allFiles = find(findPathRoot)
-
-    // Now matching the pattern against all files
-    filesList = match(allFiles, filepath, '', {
-      matchBase: true,
-      nocase: !!os.type().match(/^Win/)
-    })
-
-    // Fail if no matching files were found
-    if (!filesList || filesList.length === 0) {
-      core.debug(
-        `No matching files were found with search pattern: ${filepath}`
-      )
-      return []
-    }
-  }
-  return filesList
 }
 
 /**
@@ -525,7 +433,7 @@ export function match(
       // root the pattern when all of the following conditions are true:
       if (
         patternRoot && // patternRoot supplied
-        _isRooted(pat) && // AND pattern not rooted
+        im._isRooted(pat) && // AND pattern not rooted
         // AND matchBase:false or not basename only
         (!options.matchBase ||
           (process.platform === 'win32'
@@ -533,7 +441,7 @@ export function match(
             : pat
           ).includes('/'))
       ) {
-        pat = _ensureRooted(patternRoot, pat)
+        pat = im._ensureRooted(patternRoot, pat)
         core.debug(`rooted pattern: '${pat}'`)
       }
 
@@ -567,107 +475,6 @@ export function match(
   )
   core.debug(`${result.length} final results`)
   return result
-}
-
-export function _isRooted(p: string): boolean {
-  p = _normalizeSeparators(p)
-  if (!p) {
-    throw new Error('isRooted() parameter "p" cannot be empty')
-  }
-
-  if (process.platform === 'win32') {
-    return (
-      p.startsWith('\\') || /^[A-Z]:/i.test(p) // e.g. \ or \hello or \\hello
-    ) // e.g. C: or C:\hello
-  }
-
-  return p.startsWith('/') // e.g. /hello
-}
-
-export function _normalizeSeparators(p: string): string {
-  p = p || ''
-  if (process.platform === 'win32') {
-    // convert slashes on Windows
-    p = p.replace(/\//g, '\\')
-
-    // remove redundant slashes
-    const isUnc = /^\\\\+[^\\]/.test(p) // e.g. \\hello
-    return (isUnc ? '\\' : '') + p.replace(/\\\\+/g, '\\') // preserve leading // for UNC
-  }
-
-  // remove redundant slashes
-  return p.replace(/\/\/+/g, '/')
-}
-
-export function _ensureRooted(root: string, p: string): string {
-  if (!root) {
-    throw new Error('ensureRooted() parameter "root" cannot be empty')
-  }
-
-  if (!p) {
-    throw new Error('ensureRooted() parameter "p" cannot be empty')
-  }
-
-  if (_isRooted(p)) {
-    return p
-  }
-
-  if (process.platform === 'win32' && root.match(/^[A-Z]:$/i)) {
-    // e.g. C:
-    return root + p
-  }
-
-  // ensure root ends with a separator
-  if (
-    root.endsWith('/') ||
-    (process.platform === 'win32' && root.endsWith('\\'))
-  ) {
-    // root already ends with a separator
-  } else {
-    root += path.sep // append separator
-  }
-
-  return root + p
-}
-
-export function getFileNameFromPath(
-  filePath: string,
-  extension?: string
-): string {
-  const isWindows = os.type().match(/^Win/)
-  let fileName: string
-  if (isWindows) {
-    fileName = path.win32.basename(filePath, extension)
-  } else {
-    fileName = path.posix.basename(filePath, extension)
-  }
-
-  return fileName
-}
-
-/**
- * Gets a variable value that is defined on the build/release definition or set at runtime.
- *
- * @param     name     name of the variable to get
- * @returns   string
- */
-export function getVariable(name: string): string | undefined {
-  const key: string = getVariableKey(name)
-  const varval = process.env[key]
-
-  core.debug(`${name}=${varval}`)
-  return varval
-}
-
-export function getVariableKey(name: string): string {
-  if (!name) {
-    throw new Error(util.format('%s not supplied', 'name'))
-  }
-
-  return name
-    .replace(/\./g, '_')
-    .replace(/ /g, '_')
-    .toUpperCase()
 }
 
 /**
