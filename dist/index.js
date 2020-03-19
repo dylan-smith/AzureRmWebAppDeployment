@@ -2167,7 +2167,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const core = __importStar(__webpack_require__(470));
 const utility = __importStar(__webpack_require__(884));
-// import * as Constant from '../operations/Constants'
+const Constant = __importStar(__webpack_require__(895));
 const packageUtility_1 = __webpack_require__(263);
 const util = __importStar(__webpack_require__(669));
 var DeploymentType;
@@ -2179,6 +2179,7 @@ var DeploymentType;
 })(DeploymentType = exports.DeploymentType || (exports.DeploymentType = {}));
 exports.TaskParametersUtility = {
     getParameters() {
+        var _a, _b, _c, _d, _e;
         const taskParameters = {
             ConnectionType: core.getInput('ConnectionType', { required: true }),
             WebAppKind: core.getInput('WebAppKind'),
@@ -2199,130 +2200,90 @@ exports.TaskParametersUtility = {
             StartupCommand: core.getInput('StartupCommand'),
             ConfigurationSettings: core.getInput('ConfigurationSettings')
         };
-        // if (
-        //   taskParameters.ConnectionType === Constant.ConnectionType.PublishProfile
-        // ) {
-        //   this._initializeDefaultParametersForPublishProfile(taskParameters)
-        //   return taskParameters
-        // }
-        // taskParameters.connectedServiceName = core.getInput(
-        //   'ConnectedServiceName',
-        //   {required: true}
-        // )
-        // taskParameters.WebAppName = core.getInput('WebAppName', {required: true})
-        // taskParameters.isFunctionApp =
-        //   taskParameters.WebAppKind?.indexOf('function') !== -1
-        // taskParameters.isLinuxApp =
-        //   taskParameters.WebAppKind?.indexOf('Linux') !== -1 ||
-        //   taskParameters.WebAppKind?.indexOf('Container') !== -1
-        // taskParameters.isBuiltinLinuxWebApp =
-        //   taskParameters.WebAppKind?.indexOf('Linux') !== -1
-        // taskParameters.isContainerWebApp =
-        //   taskParameters.WebAppKind?.indexOf('Container') !== -1
-        // taskParameters.ResourceGroupName = taskParameters.DeployToSlotOrASEFlag
-        //   ? core.getInput('ResourceGroupName')
-        //   : undefined
-        // taskParameters.SlotName = taskParameters.DeployToSlotOrASEFlag
-        //   ? core.getInput('SlotName')
-        //   : undefined
-        // if (!taskParameters.isContainerWebApp) {
-        //   taskParameters.Package = new Package(
-        //     utility.getPathInput('Package', {required: true})
-        //   )
-        //   core.debug(
-        //     `intially web config parameters :${taskParameters.WebConfigParameters}`
-        //   )
-        //   if (
-        //     taskParameters.Package.getPackageType() === PackageType.jar &&
-        //     !taskParameters.isLinuxApp
-        //   ) {
-        //     if (!taskParameters.WebConfigParameters) {
-        //       taskParameters.WebConfigParameters = '-appType java_springboot'
-        //     }
-        //     if (
-        //       !taskParameters.WebConfigParameters.includes(
-        //         '-appType java_springboot'
-        //       )
-        //     ) {
-        //       taskParameters.WebConfigParameters += ' -appType java_springboot'
-        //     }
-        //     if (
-        //       taskParameters.WebConfigParameters.includes(
-        //         '-JAR_PATH D:\\home\\site\\wwwroot\\*.jar'
-        //       )
-        //     ) {
-        //       const jarPath = utility.getFileNameFromPath(
-        //         taskParameters.Package.getPath()
-        //       )
-        //       taskParameters.WebConfigParameters = taskParameters.WebConfigParameters.replace(
-        //         'D:\\home\\site\\wwwroot\\*.jar',
-        //         jarPath
-        //       )
-        //     } else if (!taskParameters.WebConfigParameters.includes('-JAR_PATH ')) {
-        //       const jarPath = utility.getFileNameFromPath(
-        //         taskParameters.Package.getPath()
-        //       )
-        //       taskParameters.WebConfigParameters += ` -JAR_PATH ${jarPath}`
-        //     }
-        //     if (
-        //       taskParameters.WebConfigParameters.includes(
-        //         '-Dserver.port=%HTTP_PLATFORM_PORT%'
-        //       )
-        //     ) {
-        //       taskParameters.WebConfigParameters = taskParameters.WebConfigParameters.replace(
-        //         '-Dserver.port=%HTTP_PLATFORM_PORT%',
-        //         ''
-        //       )
-        //     }
-        //     core.debug(
-        //       `web config parameters :${taskParameters.WebConfigParameters}`
-        //     )
-        //   }
-        // }
-        // taskParameters.UseWebDeploy = !taskParameters.isLinuxApp
-        //   ? utility.getBoolInput('UseWebDeploy')
-        //   : false
-        // if (taskParameters.isLinuxApp && taskParameters.isBuiltinLinuxWebApp) {
-        //   if (taskParameters.isFunctionApp) {
-        //     taskParameters.RuntimeStack = core.getInput('RuntimeStackFunction')
-        //   } else {
-        //     taskParameters.RuntimeStack = core.getInput('RuntimeStack')
-        //   }
-        //   taskParameters.TakeAppOfflineFlag = false
-        // }
-        // if (!taskParameters.isFunctionApp && !taskParameters.isLinuxApp) {
-        //   taskParameters.VirtualApplication = core.getInput('VirtualApplication')
-        //   taskParameters.VirtualApplication =
-        //     taskParameters.VirtualApplication &&
-        //     taskParameters.VirtualApplication.startsWith('/')
-        //       ? taskParameters.VirtualApplication.substr(1)
-        //       : taskParameters.VirtualApplication
-        // }
-        // if (taskParameters.UseWebDeploy) {
-        //   taskParameters.DeploymentType = this.getDeploymentType(
-        //     core.getInput('DeploymentType')
-        //   )
-        //   if (taskParameters.DeploymentType === DeploymentType.webDeploy) {
-        //     taskParameters.RemoveAdditionalFilesFlag = utility.getBoolInput(
-        //       'RemoveAdditionalFilesFlag'
-        //     )
-        //     taskParameters.SetParametersFile = utility.getPathInput(
-        //       'SetParametersFile'
-        //     )
-        //     taskParameters.ExcludeFilesFromAppDataFlag = utility.getBoolInput(
-        //       'ExcludeFilesFromAppDataFlag'
-        //     )
-        //     taskParameters.AdditionalArguments =
-        //       core.getInput('AdditionalArguments') || ''
-        //   }
-        // } else {
-        //   // Retry Attempt is passed by default
-        //   taskParameters.AdditionalArguments =
-        //     '-retryAttempts:6 -retryInterval:10000'
-        // }
-        // if (taskParameters.isLinuxApp && taskParameters.ScriptType) {
-        //   this.UpdateLinuxAppTypeScriptParameters(taskParameters)
-        // }
+        if (taskParameters.ConnectionType === Constant.ConnectionType.PublishProfile) {
+            this._initializeDefaultParametersForPublishProfile(taskParameters);
+            return taskParameters;
+        }
+        taskParameters.connectedServiceName = core.getInput('ConnectedServiceName', { required: true });
+        taskParameters.WebAppName = core.getInput('WebAppName', { required: true });
+        taskParameters.isFunctionApp =
+            ((_a = taskParameters.WebAppKind) === null || _a === void 0 ? void 0 : _a.indexOf('function')) !== -1;
+        taskParameters.isLinuxApp =
+            ((_b = taskParameters.WebAppKind) === null || _b === void 0 ? void 0 : _b.indexOf('Linux')) !== -1 ||
+                ((_c = taskParameters.WebAppKind) === null || _c === void 0 ? void 0 : _c.indexOf('Container')) !== -1;
+        taskParameters.isBuiltinLinuxWebApp =
+            ((_d = taskParameters.WebAppKind) === null || _d === void 0 ? void 0 : _d.indexOf('Linux')) !== -1;
+        taskParameters.isContainerWebApp =
+            ((_e = taskParameters.WebAppKind) === null || _e === void 0 ? void 0 : _e.indexOf('Container')) !== -1;
+        taskParameters.ResourceGroupName = taskParameters.DeployToSlotOrASEFlag
+            ? core.getInput('ResourceGroupName')
+            : undefined;
+        taskParameters.SlotName = taskParameters.DeployToSlotOrASEFlag
+            ? core.getInput('SlotName')
+            : undefined;
+        if (!taskParameters.isContainerWebApp) {
+            taskParameters.Package = new packageUtility_1.Package(utility.getPathInput('Package', { required: true }));
+            core.debug(`intially web config parameters :${taskParameters.WebConfigParameters}`);
+            if (taskParameters.Package.getPackageType() === packageUtility_1.PackageType.jar &&
+                !taskParameters.isLinuxApp) {
+                if (!taskParameters.WebConfigParameters) {
+                    taskParameters.WebConfigParameters = '-appType java_springboot';
+                }
+                if (!taskParameters.WebConfigParameters.includes('-appType java_springboot')) {
+                    taskParameters.WebConfigParameters += ' -appType java_springboot';
+                }
+                if (taskParameters.WebConfigParameters.includes('-JAR_PATH D:\\home\\site\\wwwroot\\*.jar')) {
+                    const jarPath = utility.getFileNameFromPath(taskParameters.Package.getPath());
+                    taskParameters.WebConfigParameters = taskParameters.WebConfigParameters.replace('D:\\home\\site\\wwwroot\\*.jar', jarPath);
+                }
+                else if (!taskParameters.WebConfigParameters.includes('-JAR_PATH ')) {
+                    const jarPath = utility.getFileNameFromPath(taskParameters.Package.getPath());
+                    taskParameters.WebConfigParameters += ` -JAR_PATH ${jarPath}`;
+                }
+                if (taskParameters.WebConfigParameters.includes('-Dserver.port=%HTTP_PLATFORM_PORT%')) {
+                    taskParameters.WebConfigParameters = taskParameters.WebConfigParameters.replace('-Dserver.port=%HTTP_PLATFORM_PORT%', '');
+                }
+                core.debug(`web config parameters :${taskParameters.WebConfigParameters}`);
+            }
+        }
+        taskParameters.UseWebDeploy = !taskParameters.isLinuxApp
+            ? utility.getBoolInput('UseWebDeploy')
+            : false;
+        if (taskParameters.isLinuxApp && taskParameters.isBuiltinLinuxWebApp) {
+            if (taskParameters.isFunctionApp) {
+                taskParameters.RuntimeStack = core.getInput('RuntimeStackFunction');
+            }
+            else {
+                taskParameters.RuntimeStack = core.getInput('RuntimeStack');
+            }
+            taskParameters.TakeAppOfflineFlag = false;
+        }
+        if (!taskParameters.isFunctionApp && !taskParameters.isLinuxApp) {
+            taskParameters.VirtualApplication = core.getInput('VirtualApplication');
+            taskParameters.VirtualApplication =
+                taskParameters.VirtualApplication &&
+                    taskParameters.VirtualApplication.startsWith('/')
+                    ? taskParameters.VirtualApplication.substr(1)
+                    : taskParameters.VirtualApplication;
+        }
+        if (taskParameters.UseWebDeploy) {
+            taskParameters.DeploymentType = this.getDeploymentType(core.getInput('DeploymentType'));
+            if (taskParameters.DeploymentType === DeploymentType.webDeploy) {
+                taskParameters.RemoveAdditionalFilesFlag = utility.getBoolInput('RemoveAdditionalFilesFlag');
+                taskParameters.SetParametersFile = utility.getPathInput('SetParametersFile');
+                taskParameters.ExcludeFilesFromAppDataFlag = utility.getBoolInput('ExcludeFilesFromAppDataFlag');
+                taskParameters.AdditionalArguments =
+                    core.getInput('AdditionalArguments') || '';
+            }
+        }
+        else {
+            // Retry Attempt is passed by default
+            taskParameters.AdditionalArguments =
+                '-retryAttempts:6 -retryInterval:10000';
+        }
+        if (taskParameters.isLinuxApp && taskParameters.ScriptType) {
+            this.UpdateLinuxAppTypeScriptParameters(taskParameters);
+        }
         return taskParameters;
     },
     _initializeDefaultParametersForPublishProfile(taskParameters) {
@@ -49561,7 +49522,31 @@ module.exports = _head;
 /* 892 */,
 /* 893 */,
 /* 894 */,
-/* 895 */,
+/* 895 */
+/***/ (function(__unusedmodule, exports) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.ConnectionType = {
+    PublishProfile: 'PublishProfile',
+    AzureRM: 'AzureRM'
+};
+exports.SiteRoot = '/site/wwwroot';
+exports.PublishProfileXml = {
+    ExcludeAppData: 'ExcludeApp_Data',
+    EnableMSDeployAppOffline: 'EnableMSDeployAppOffline',
+    SkipExtraFilesOnServer: 'SkipExtraFilesOnServer',
+    SiteUrlToLaunchAfterPublish: 'SiteUrlToLaunchAfterPublish',
+    MSDeployServiceURL: 'MSDeployServiceURL',
+    DeployIisAppPath: 'DeployIisAppPath',
+    MSDeploy: 'MSDeploy',
+    UserName: 'UserName'
+};
+exports.AzureDeployPackageArtifactAlias = 'Azure_App_Service_Deploy_PackageArtifactAlias';
+
+
+/***/ }),
 /* 896 */
 /***/ (function(module) {
 
