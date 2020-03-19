@@ -2,11 +2,11 @@ name: 'Azure Web App Deployment'
 description: 'Deploys a web application to an Azure App Service'
 author: 'dylan-smith'
 inputs:
-  connection-type:
+  ConnectionType:
     description: 'Service connection type to use to deploy the Web App. PublishProfile for using Visual Studio created Publish profile, otherwise enter AzureRM'
     required: true
     default: 'AzureRM'
-  webapp-name:
+  WebAppName:
     description: 'App Service Name (Only relevant when connection-type is set to AzureRM'
     required: false
 
