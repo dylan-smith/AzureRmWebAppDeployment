@@ -587,12 +587,12 @@ export enum Platform {
  * @param     options  optional exec options.  See IExecOptions
  * @returns   number
  */
-export function exec(
+export async function exec(
   tool: string,
-  args: any,
+  args: string | string[],
   options?: trm.IExecOptions
-): Q.Promise<number> {
-  let tr: trm.ToolRunner = createToolRunner(tool)
+): Promise<number> {
+  const tr: trm.ToolRunner = createToolRunner(tool)
   tr.on('debug', (data: string) => {
     core.debug(data)
   })
@@ -614,7 +614,7 @@ export function exec(
  * @returns   ToolRunner
  */
 export function createToolRunner(tool: string): trm.ToolRunner {
-  let tr: trm.ToolRunner = new trm.ToolRunner(tool)
+  const tr: trm.ToolRunner = new trm.ToolRunner(tool)
   tr.on('debug', (message: string) => {
     core.debug(message)
   })

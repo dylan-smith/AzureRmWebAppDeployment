@@ -6,14 +6,13 @@ import {
 } from '../operations/PublishProfileUtility'
 // import { FileTransformsUtility } from '../operations/FileTransformsUtility';
 // import { AzureAppServiceUtility } from '../operations/AzureAppServiceUtility';
-import * as Constant from '../operations/Constants'
 import * as tl from '../task-lib/task'
 import * as fs from 'fs'
 import * as path from 'path'
 import * as os from 'os'
 import * as core from '@actions/core'
 import * as packageUtility from '../webdeployment-common-v2/packageUtility'
-import * as deployUtility from '../webdeployment-common-v2/utility'
+// import * as deployUtility from '../webdeployment-common-v2/utility'
 
 // var msDeployUtility = require('webdeployment-common-v2/msdeployutility.js');
 
@@ -32,15 +31,16 @@ export class PublishProfileWebAppDeploymentProvider
     this.taskParams = taskParams
   }
 
-  public async PreDeploymentStep() {
+  async PreDeploymentStep(): Promise<void> {
     if (this.taskParams.PublishProfilePath) {
       this.publishProfileUtility = new PublishProfileUtility(
         this.taskParams.PublishProfilePath
       )
       try {
-        var siteUrl = await this.publishProfileUtility.GetPropertyValuefromPublishProfile(
-          Constant.PublishProfileXml.SiteUrlToLaunchAfterPublish
+        const siteUrl = await this.publishProfileUtility.GetPropertyValuefromPublishProfile(
+          'SiteUrlToLaunchAfterPublish'
         )
+        core.debug(`DELETE THIS LINE - ${siteUrl}`)
         // await AzureAppServiceUtility.pingApplication(siteUrl);
         // tl.setVariable('AppServiceApplicationUrl', siteUrl);
       } catch (error) {
@@ -51,7 +51,7 @@ export class PublishProfileWebAppDeploymentProvider
     }
   }
 
-  public async DeployWebAppStep() {
+  async DeployWebAppStep(): Promise<void> {
     if (!os.type().match(/^Win/)) {
       throw Error(
         'Publish using webdeploy options are supported only when using Windows agent'
@@ -60,7 +60,7 @@ export class PublishProfileWebAppDeploymentProvider
 
     core.debug('Performing the deployment of webapp using publish profile.')
 
-    var applyFileTransformFlag =
+    const applyFileTransformFlag =
       this.taskParams.JSONFiles ||
       this.taskParams.XmlTransformation ||
       this.taskParams.XmlVariableSubstitution
@@ -69,37 +69,37 @@ export class PublishProfileWebAppDeploymentProvider
     }
 
     if (this.publishProfileUtility) {
-      var msDeployPublishingProfile: PublishingProfile = await this.publishProfileUtility.GetTaskParametersFromPublishProfileFile(
+      const msDeployPublishingProfile: PublishingProfile = await this.publishProfileUtility.GetTaskParametersFromPublishProfileFile(
         this.taskParams
       )
-      var deployCmdFilePath = this.GetDeployCmdFilePath()
+      const deployCmdFilePath = this.GetDeployCmdFilePath()
 
       await this.SetMsdeployEnvPath()
-      var cmdArgs: string = this.GetDeployScriptCmdArgs(
+      const cmdArgs: string = this.GetDeployScriptCmdArgs(
         msDeployPublishingProfile
       )
 
-      var retryCountParam = tl.getVariable('appservice.msdeployretrycount')
-      var retryCount =
+      const retryCountParam = tl.getVariable('appservice.msdeployretrycount')
+      let retryCount =
         retryCountParam && !isNaN(Number(retryCountParam))
           ? Number(retryCountParam)
           : DEFAULT_RETRY_COUNT
 
       try {
-        while (true) {
+        for (;;) {
           try {
             retryCount -= 1
             await this.publishProfileUtility.RunCmd(deployCmdFilePath, cmdArgs)
             break
           } catch (error) {
-            if (retryCount == 0) {
+            if (retryCount === 0) {
               throw error
             }
-            console.log(error)
-            console.log('Retrying to deploy the package.')
+            core.info(error)
+            core.info('Retrying to deploy the package.')
           }
         }
-        console.log('Successfully deployed web package to App Service.')
+        core.info('Successfully deployed web package to App Service.')
       } catch (error) {
         core.error('Failed to deploy web package to App Service.')
         core.debug(JSON.stringify(error))
@@ -116,43 +116,39 @@ export class PublishProfileWebAppDeploymentProvider
     }
   }
 
-  public async UpdateDeploymentStatus(isDeploymentSuccess: boolean) {}
+  async UpdateDeploymentStatus(isDeploymentSuccess: boolean): Promise<void> {
+    core.info(
+      `Update Deployment Status called but not implemented in this Provider [${isDeploymentSuccess}]`
+    )
+  }
 
-  private async SetMsdeployEnvPath() {
+  private async SetMsdeployEnvPath(): Promise<void> {
     // var msDeployPath = await msDeployUtility.getMSDeployFullPath();
     // var msDeployDirectory = msDeployPath.slice(0, msDeployPath.lastIndexOf('\\') + 1);
     // this.origEnvPath = process.env.PATH;
     // process.env.PATH = msDeployDirectory + ";" + process.env.PATH ;
   }
 
-  private async ResetMsdeployEnvPath() {
+  private ResetMsdeployEnvPath(): void {
     process.env.PATH = this.origEnvPath
   }
 
   private GetDeployCmdFilePath(): string {
     if (this.taskParams.Package) {
-      var webPackagePath = this.taskParams.Package.getPath()
-      var packageDir = path.dirname(webPackagePath)
+      const webPackagePath = this.taskParams.Package.getPath()
+      const packageDir = path.dirname(webPackagePath)
       return packageUtility.PackageUtility.getPackagePath(
-        packageDir + '\\*.deploy.cmd'
+        `${packageDir}\\*.deploy.cmd`
       )
     }
 
     throw new Error('Package not set')
   }
 
-  private GetDeployScriptCmdArgs(msDeployPublishingProfile: any): string {
-    var deployCmdArgs: string =
-      ' /Y /A:basic "/U:' +
-      msDeployPublishingProfile.UserName +
-      '" "\\"/P:' +
-      msDeployPublishingProfile.UserPWD +
-      '\\"" "\\"/M:' +
-      'https://' +
-      msDeployPublishingProfile.PublishUrl +
-      '/msdeploy.axd?site=' +
-      msDeployPublishingProfile.WebAppName +
-      '\\""'
+  private GetDeployScriptCmdArgs(
+    msDeployPublishingProfile: PublishingProfile
+  ): string {
+    let deployCmdArgs = ` /Y /A:basic "/U:${msDeployPublishingProfile.UserName}" "\\"/P:${msDeployPublishingProfile.UserPWD}\\"" "\\"/M:https://${msDeployPublishingProfile.PublishUrl}/msdeploy.axd?site=${msDeployPublishingProfile.WebAppName}\\""`
 
     if (msDeployPublishingProfile.TakeAppOfflineFlag) {
       deployCmdArgs += ' -enableRule:AppOffline'
@@ -163,13 +159,13 @@ export class PublishProfileWebAppDeploymentProvider
     }
 
     if (this.taskParams.AdditionalArguments) {
-      deployCmdArgs += ' ' + this.taskParams.AdditionalArguments
+      deployCmdArgs += ` ${this.taskParams.AdditionalArguments}`
     }
 
     return deployCmdArgs
   }
 
-  private async ApplyFileTransformation() {
+  private async ApplyFileTransformation(): Promise<void> {
     // this.origWebPackage = packageUtility.PackageUtility.getPackagePath(this.taskParams.Package.getPath());
     // this.modWebPackage = await FileTransformsUtility.applyTransformations(this.origWebPackage, this.taskParams);
     // this.bakWebPackage = this.origWebPackage + ".bak";
@@ -177,7 +173,7 @@ export class PublishProfileWebAppDeploymentProvider
     // fs.renameSync(this.modWebPackage, this.origWebPackage);
   }
 
-  private ResetFileTransformation() {
+  private ResetFileTransformation(): void {
     if (this.origWebPackage && this.bakWebPackage) {
       tl.rmRF(this.origWebPackage)
       fs.renameSync(this.bakWebPackage, this.origWebPackage)

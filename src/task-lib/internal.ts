@@ -139,11 +139,11 @@ export function _which(tool: string, check?: boolean): string {
 
   // recursive when check=true
   if (check) {
-    let result: string = _which(tool, false)
+    const result: string = _which(tool, false)
     if (result) {
       return result
     } else {
-      if (process.platform == 'win32') {
+      if (process.platform === 'win32') {
         throw new Error(
           util.format(
             "Unable to locate executable file: '%s'. Please verify either the file path exists or the file can be found within a directory specified by the PATH environment variable. Also verify the file has a valid extension for an executable file.",
@@ -164,9 +164,9 @@ export function _which(tool: string, check?: boolean): string {
   core.debug(`which '${tool}'`)
   try {
     // build the list of extensions to try
-    let extensions: string[] = []
-    if (process.platform == 'win32' && process.env['PATHEXT']) {
-      for (let extension of process.env['PATHEXT'].split(path.delimiter)) {
+    const extensions: string[] = []
+    if (process.platform === 'win32' && process.env['PATHEXT']) {
+      for (const extension of process.env['PATHEXT'].split(path.delimiter)) {
         if (extension) {
           extensions.push(extension)
         }
@@ -175,7 +175,7 @@ export function _which(tool: string, check?: boolean): string {
 
     // if it's rooted, return it if exists. otherwise return empty.
     if (_isRooted(tool)) {
-      let filePath: string = _tryGetExecutablePath(tool, extensions)
+      const filePath: string = _tryGetExecutablePath(tool, extensions)
       if (filePath) {
         core.debug(`found: '${filePath}'`)
         return filePath
@@ -187,8 +187,8 @@ export function _which(tool: string, check?: boolean): string {
 
     // if any path separators, return empty
     if (
-      tool.indexOf('/') >= 0 ||
-      (process.platform == 'win32' && tool.indexOf('\\') >= 0)
+      tool.includes('/') ||
+      (process.platform === 'win32' && tool.includes('\\'))
     ) {
       core.debug('not found')
       return ''
@@ -200,9 +200,9 @@ export function _which(tool: string, check?: boolean): string {
     // it feels like we should not do this. Checking the current directory seems like more of a use
     // case of a shell, and the which() function exposed by the task lib should strive for consistency
     // across platforms.
-    let directories: string[] = []
+    const directories: string[] = []
     if (process.env['PATH']) {
-      for (let p of process.env['PATH'].split(path.delimiter)) {
+      for (const p of process.env['PATH'].split(path.delimiter)) {
         if (p) {
           directories.push(p)
         }
@@ -210,8 +210,8 @@ export function _which(tool: string, check?: boolean): string {
     }
 
     // return the first match
-    for (let directory of directories) {
-      let filePath = _tryGetExecutablePath(
+    for (const directory of directories) {
+      const filePath = _tryGetExecutablePath(
         directory + path.sep + tool,
         extensions
       )
@@ -237,16 +237,17 @@ export function _which(tool: string, check?: boolean): string {
 function _tryGetExecutablePath(filePath: string, extensions: string[]): string {
   try {
     // test file exists
-    let stats: fs.Stats = fs.statSync(filePath)
+    const stats: fs.Stats = fs.statSync(filePath)
     if (stats.isFile()) {
-      if (process.platform == 'win32') {
+      if (process.platform === 'win32') {
         // on Windows, test for valid extension
-        let isExecutable = false
-        let fileName = path.basename(filePath)
-        let dotIndex = fileName.lastIndexOf('.')
+        const fileName = path.basename(filePath)
+        const dotIndex = fileName.lastIndexOf('.')
         if (dotIndex >= 0) {
-          let upperExt = fileName.substr(dotIndex).toUpperCase()
-          if (extensions.some(validExt => validExt.toUpperCase() == upperExt)) {
+          const upperExt = fileName.substr(dotIndex).toUpperCase()
+          if (
+            extensions.some(validExt => validExt.toUpperCase() === upperExt)
+          ) {
             return filePath
           }
         }
@@ -257,7 +258,7 @@ function _tryGetExecutablePath(filePath: string, extensions: string[]): string {
       }
     }
   } catch (err) {
-    if (err.code != 'ENOENT') {
+    if (err.code !== 'ENOENT') {
       core.debug(
         `Unexpected error attempting to determine if executable file exists '${filePath}': ${err}`
       )
@@ -265,20 +266,19 @@ function _tryGetExecutablePath(filePath: string, extensions: string[]): string {
   }
 
   // try each extension
-  let originalFilePath = filePath
-  for (let extension of extensions) {
-    let found = false
-    let filePath = originalFilePath + extension
+  const originalFilePath = filePath
+  for (const extension of extensions) {
+    filePath = originalFilePath + extension
     try {
-      let stats: fs.Stats = fs.statSync(filePath)
+      const stats: fs.Stats = fs.statSync(filePath)
       if (stats.isFile()) {
-        if (process.platform == 'win32') {
+        if (process.platform === 'win32') {
           // preserve the case of the actual file (since an extension was appended)
           try {
-            let directory = path.dirname(filePath)
-            let upperName = path.basename(filePath).toUpperCase()
-            for (let actualName of fs.readdirSync(directory)) {
-              if (upperName == actualName.toUpperCase()) {
+            const directory = path.dirname(filePath)
+            const upperName = path.basename(filePath).toUpperCase()
+            for (const actualName of fs.readdirSync(directory)) {
+              if (upperName === actualName.toUpperCase()) {
                 filePath = path.join(directory, actualName)
                 break
               }
@@ -297,7 +297,7 @@ function _tryGetExecutablePath(filePath: string, extensions: string[]): string {
         }
       }
     } catch (err) {
-      if (err.code != 'ENOENT') {
+      if (err.code !== 'ENOENT') {
         core.debug(
           `Unexpected error attempting to determine if executable file exists '${filePath}': ${err}`
         )
@@ -311,7 +311,7 @@ function _tryGetExecutablePath(filePath: string, extensions: string[]): string {
 // on Mac/Linux, test the execute bit
 //     R   W  X  R  W X R W X
 //   256 128 64 32 16 8 4 2 1
-function isUnixExecutable(stats: fs.Stats) {
+function isUnixExecutable(stats: fs.Stats): boolean {
   return (
     (stats.mode & 1) > 0 ||
     ((stats.mode & 8) > 0 && stats.gid === process.getgid()) ||

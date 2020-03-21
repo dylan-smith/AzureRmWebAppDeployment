@@ -1,4 +1,4 @@
-import * as Q from 'q'
+import Q from 'q'
 import * as os from 'os'
 import * as events from 'events'
 import * as child from 'child_process'
@@ -6,6 +6,7 @@ import * as stream from 'stream'
 import * as im from './internal'
 import * as fs from 'fs'
 import * as util from 'util'
+import * as core from '@actions/core'
 
 /**
  * Interface for exec options
@@ -52,10 +53,10 @@ export interface IExecSyncResult {
   stderr: string
 
   /** return code */
-  code: number
+  code: number | null
 
   /** Error on failure */
-  error: Error
+  error?: Error
 }
 
 export class ToolRunner extends events.EventEmitter {
@@ -68,7 +69,7 @@ export class ToolRunner extends events.EventEmitter {
 
     this.toolPath = im._which(toolPath, true)
     this.args = []
-    this._debug('toolRunner toolPath: ' + toolPath)
+    this._debug(`toolRunner toolPath: ${toolPath}`)
   }
 
   private toolPath: string
@@ -76,19 +77,19 @@ export class ToolRunner extends events.EventEmitter {
   private pipeOutputToTool: ToolRunner | undefined
   private pipeOutputToFile: string | undefined
 
-  private _debug(message: string) {
+  private _debug(message: string): void {
     this.emit('debug', message)
   }
 
   private _argStringToArray(argString: string): string[] {
-    var args: string[] = []
+    const args: string[] = []
 
-    var inQuotes = false
-    var escaped = false
-    var lastCharWasSpace = true
-    var arg = ''
+    let inQuotes = false
+    let escaped = false
+    let lastCharWasSpace = true
+    let arg = ''
 
-    var append = function(c: string) {
+    function append(c: string): void {
       // we only escape double quotes.
       if (escaped && c !== '"') {
         arg += '\\'
@@ -98,8 +99,8 @@ export class ToolRunner extends events.EventEmitter {
       escaped = false
     }
 
-    for (var i = 0; i < argString.length; i++) {
-      var c = argString.charAt(i)
+    for (let i = 0; i < argString.length; i++) {
+      const c = argString.charAt(i)
 
       if (c === ' ' && !inQuotes) {
         if (!lastCharWasSpace) {
@@ -143,46 +144,48 @@ export class ToolRunner extends events.EventEmitter {
   }
 
   private _getCommandString(options: IExecOptions, noPrefix?: boolean): string {
-    let toolPath: string = this._getSpawnFileName()
-    let args: string[] = this._getSpawnArgs(options)
+    const toolPath: string = this._getSpawnFileName()
+    const args: string[] = this._getSpawnArgs(options)
     let cmd = noPrefix ? '' : '[command]' // omit prefix when piped to a second tool
-    if (process.platform == 'win32') {
+    if (process.platform === 'win32') {
       // Windows + cmd file
       if (this._isCmdFile()) {
         cmd += toolPath
-        args.forEach((a: string): void => {
+
+        for (const a of args) {
           cmd += ` ${a}`
-        })
+        }
       }
       // Windows + verbatim
       else if (options.windowsVerbatimArguments) {
         cmd += `"${toolPath}"`
-        args.forEach((a: string): void => {
+        for (const a of args) {
           cmd += ` ${a}`
-        })
+        }
       }
       // Windows (regular)
       else {
         cmd += this._windowsQuoteCmdArg(toolPath)
-        args.forEach((a: string): void => {
+        for (const a of args) {
           cmd += ` ${this._windowsQuoteCmdArg(a)}`
-        })
+        }
       }
     } else {
       // OSX/Linux - this can likely be improved with some form of quoting.
       // creating processes on Unix is fundamentally different than Windows.
       // on Unix, execvp() takes an arg array.
       cmd += toolPath
-      args.forEach((a: string): void => {
+      for (const a of args) {
         cmd += ` ${a}`
-      })
+      }
     }
 
     // append second tool
     if (this.pipeOutputToTool) {
-      cmd +=
-        ' | ' +
-        this.pipeOutputToTool._getCommandString(options, /*noPrefix:*/ true)
+      cmd += ` | ${this.pipeOutputToTool._getCommandString(
+        options,
+        /*noPrefix:*/ true
+      )}`
     }
 
     return cmd
@@ -194,11 +197,11 @@ export class ToolRunner extends events.EventEmitter {
     onLine: (line: string) => void
   ): void {
     try {
-      var s = strBuffer + data.toString()
-      var n = s.indexOf(os.EOL)
+      let s = strBuffer + data.toString()
+      let n = s.indexOf(os.EOL)
 
       while (n > -1) {
-        var line = s.substring(0, n)
+        const line = s.substring(0, n)
         onLine(line)
 
         // the rest of the string ...
@@ -214,7 +217,7 @@ export class ToolRunner extends events.EventEmitter {
   }
 
   private _getSpawnFileName(): string {
-    if (process.platform == 'win32') {
+    if (process.platform === 'win32') {
       if (this._isCmdFile()) {
         return process.env['COMSPEC'] || 'cmd.exe'
       }
@@ -224,16 +227,14 @@ export class ToolRunner extends events.EventEmitter {
   }
 
   private _getSpawnArgs(options: IExecOptions): string[] {
-    if (process.platform == 'win32') {
+    if (process.platform === 'win32') {
       if (this._isCmdFile()) {
-        let argline: string = `/D /S /C "${this._windowsQuoteCmdArg(
-          this.toolPath
-        )}`
-        for (let i = 0; i < this.args.length; i++) {
+        let argline = `/D /S /C "${this._windowsQuoteCmdArg(this.toolPath)}`
+        for (const a of this.args) {
           argline += ' '
           argline += options.windowsVerbatimArguments
-            ? this.args[i]
-            : this._windowsQuoteCmdArg(this.args[i])
+            ? a
+            : this._windowsQuoteCmdArg(a)
         }
 
         argline += '"'
@@ -244,12 +245,13 @@ export class ToolRunner extends events.EventEmitter {
         // note, in Node 6.x options.argv0 can be used instead of overriding args.slice and args.unshift.
         // for more details, refer to https://github.com/nodejs/node/blob/v6.x/lib/child_process.js
 
-        let args = this.args.slice(0) // copy the array
+        const args = this.args.slice(0) // copy the array
 
         // override slice to prevent Node from creating a copy of the arg array.
         // we need Node to use the "unshift" override below.
-        args.slice = function() {
-          if (arguments.length != 1 || arguments[0] != 0) {
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        args.slice = function(...a) {
+          if (a.length !== 1 || a[0] !== 0) {
             throw new Error(
               'Unexpected arguments passed to args.slice when windowsVerbatimArguments flag is set.'
             )
@@ -278,14 +280,15 @@ export class ToolRunner extends events.EventEmitter {
         // passes the tool path to CreateProcess via the application parameter (optional parameter). when
         // present, Windows uses the application parameter to determine which file to run, instead of
         // interpreting the file from the cmdline parameter.
-        args.unshift = function() {
-          if (arguments.length != 1) {
+        // eslint-disable-next-line @typescript-eslint/unbound-method
+        args.unshift = function(...a) {
+          if (a.length !== 1) {
             throw new Error(
               'Unexpected arguments passed to args.unshift when windowsVerbatimArguments flag is set.'
             )
           }
 
-          return Array.prototype.unshift.call(args, `"${arguments[0]}"`) // quote the file name
+          return Array.prototype.unshift.call(args, `"${a[0]}"`) // quote the file name
         }
         return args
       }
@@ -295,14 +298,14 @@ export class ToolRunner extends events.EventEmitter {
   }
 
   private _isCmdFile(): boolean {
-    let upperToolPath: string = this.toolPath.toUpperCase()
+    const upperToolPath: string = this.toolPath.toUpperCase()
     return upperToolPath.endsWith('.CMD') || upperToolPath.endsWith('.BAT')
   }
 
   private _windowsQuoteCmdArg(arg: string): string {
     // for .exe, apply the normal quoting rules that libuv applies
     if (!this._isCmdFile()) {
-      return this._uv_quote_cmd_arg(arg)
+      return this._uvQuoteCmdArg(arg)
     }
 
     // otherwise apply quoting rules specific to the cmd.exe command line parser.
@@ -343,8 +346,8 @@ export class ToolRunner extends events.EventEmitter {
       '"'
     ]
     let needsQuotes = false
-    for (let char of arg) {
-      if (cmdSpecialChars.some(x => x == char)) {
+    for (const char of arg) {
+      if (cmdSpecialChars.some(x => x === char)) {
         needsQuotes = true
         break
       }
@@ -402,18 +405,18 @@ export class ToolRunner extends events.EventEmitter {
     //
     // an unexplored potential solution for the % escaping problem, is to create a wrapper .cmd file.
     // % can be escaped within a .cmd file.
-    let reverse: string = '"'
-    let quote_hit = true
+    let reverse = '"'
+    let quoteHit = true
     for (let i = arg.length; i > 0; i--) {
       // walk the string in reverse
       reverse += arg[i - 1]
-      if (quote_hit && arg[i - 1] == '\\') {
+      if (quoteHit && arg[i - 1] === '\\') {
         reverse += '\\' // double the slash
-      } else if (arg[i - 1] == '"') {
-        quote_hit = true
+      } else if (arg[i - 1] === '"') {
+        quoteHit = true
         reverse += '"' // double the quote
       } else {
-        quote_hit = false
+        quoteHit = false
       }
     }
 
@@ -424,7 +427,7 @@ export class ToolRunner extends events.EventEmitter {
       .join('')
   }
 
-  private _uv_quote_cmd_arg(arg: string): string {
+  private _uvQuoteCmdArg(arg: string): string {
     // Tool runner wraps child_process.spawn() and needs to apply the same quoting as
     // Node in certain cases where the undocumented spawn option windowsVerbatimArguments
     // is used.
@@ -458,12 +461,12 @@ export class ToolRunner extends events.EventEmitter {
       return '""'
     }
 
-    if (arg.indexOf(' ') < 0 && arg.indexOf('\t') < 0 && arg.indexOf('"') < 0) {
+    if (!arg.includes(' ') && !arg.includes('\t') && !arg.includes('"')) {
       // No quotation needed
       return arg
     }
 
-    if (arg.indexOf('"') < 0 && arg.indexOf('\\') < 0) {
+    if (!arg.includes('"') && !arg.includes('\\')) {
       // No embedded double quotes or backslashes, so I can just wrap
       // quote marks around the whole thing.
       return `"${arg}"`
@@ -485,18 +488,18 @@ export class ToolRunner extends events.EventEmitter {
     //   input : hello world\
     //   output: "hello world\\" - note the comment in libuv actually reads "hello world\"
     //                             but it appears the comment is wrong, it should be "hello world\\"
-    let reverse: string = '"'
-    let quote_hit = true
+    let reverse = '"'
+    let quoteHit = true
     for (let i = arg.length; i > 0; i--) {
       // walk the string in reverse
       reverse += arg[i - 1]
-      if (quote_hit && arg[i - 1] == '\\') {
+      if (quoteHit && arg[i - 1] === '\\') {
         reverse += '\\'
-      } else if (arg[i - 1] == '"') {
-        quote_hit = true
+      } else if (arg[i - 1] === '"') {
+        quoteHit = true
         reverse += '\\'
       } else {
-        quote_hit = false
+        quoteHit = false
       }
     }
 
@@ -508,8 +511,8 @@ export class ToolRunner extends events.EventEmitter {
   }
 
   private _cloneExecOptions(options?: IExecOptions): IExecOptions {
-    options = options || <IExecOptions>{}
-    let result: IExecOptions = <IExecOptions>{
+    options = options || {}
+    const result: IExecOptions = {
       cwd: options.cwd || process.cwd(),
       env: options.env || process.env,
       silent: options.silent || false,
@@ -523,8 +526,8 @@ export class ToolRunner extends events.EventEmitter {
   }
 
   private _getSpawnOptions(options?: IExecOptions): child.SpawnOptions {
-    options = options || <IExecOptions>{}
-    let result = <child.SpawnOptions>{}
+    options = options || {}
+    const result = <child.SpawnOptions>{}
     result.cwd = options.cwd
     result.env = options.env
     result['windowsVerbatimArguments'] =
@@ -535,7 +538,7 @@ export class ToolRunner extends events.EventEmitter {
   private _getSpawnSyncOptions(
     options: IExecSyncOptions
   ): child.SpawnSyncOptions {
-    let result = <child.SpawnSyncOptions>{}
+    const result = <child.SpawnSyncOptions>{}
     result.cwd = options.cwd
     result.env = options.env
     result['windowsVerbatimArguments'] =
@@ -543,52 +546,49 @@ export class ToolRunner extends events.EventEmitter {
     return result
   }
 
-  private execWithPiping(
+  private async execWithPiping(
     pipeOutputToTool: ToolRunner,
     options?: IExecOptions
-  ): Q.Promise<number> {
-    var defer = Q.defer<number>()
+  ): Promise<number> {
+    const defer = Q.defer<number>()
 
-    this._debug('exec tool: ' + this.toolPath)
+    this._debug(`exec tool: ${this.toolPath}`)
     this._debug('arguments:')
-    this.args.forEach(arg => {
-      this._debug('   ' + arg)
-    })
+    for (const arg of this.args) {
+      this._debug(`   ${arg}`)
+    }
 
     let success = true
     const optionsNonNull = this._cloneExecOptions(options)
 
     if (!optionsNonNull.silent) {
-      optionsNonNull.outStream!.write(
+      optionsNonNull.outStream?.write(
         this._getCommandString(optionsNonNull) + os.EOL
       )
     }
 
-    let cp: child.ChildProcess
-    let toolPath: string = pipeOutputToTool.toolPath
-    let toolPathFirst: string
+    const toolPath: string = pipeOutputToTool.toolPath
+    const toolPathFirst: string = this.toolPath
     let successFirst = true
     let returnCodeFirst: number
     let fileStream: fs.WriteStream | null
-    let waitingEvents: number = 0 // number of process or stream events we are waiting on to complete
-    let returnCode: number = 0
-    let error: any
-
-    toolPathFirst = this.toolPath
+    let waitingEvents = 0 // number of process or stream events we are waiting on to complete
+    let returnCode = 0
+    let error: Error
 
     // Following node documentation example from this link on how to pipe output of one process to another
     // https://nodejs.org/api/child_process.html#child_process_child_process_spawn_command_args_options
 
     //start the child process for both tools
     waitingEvents++
-    var cpFirst = child.spawn(
+    const cpFirst = child.spawn(
       this._getSpawnFileName(),
       this._getSpawnArgs(optionsNonNull),
       this._getSpawnOptions(optionsNonNull)
     )
 
     waitingEvents++
-    cp = child.spawn(
+    const cp: child.ChildProcess = child.spawn(
       pipeOutputToTool._getSpawnFileName(),
       pipeOutputToTool._getSpawnArgs(optionsNonNull),
       pipeOutputToTool._getSpawnOptions(optionsNonNull)
@@ -602,7 +602,7 @@ export class ToolRunner extends events.EventEmitter {
       fileStream.on('finish', () => {
         waitingEvents-- //file write is complete
         fileStream = null
-        if (waitingEvents == 0) {
+        if (waitingEvents === 0) {
           if (error) {
             defer.reject(error)
           } else {
@@ -616,7 +616,7 @@ export class ToolRunner extends events.EventEmitter {
           `Failed to pipe output of ${toolPathFirst} to file ${this.pipeOutputToFile}. Error = ${err}`
         )
         fileStream = null
-        if (waitingEvents == 0) {
+        if (waitingEvents === 0) {
           if (error) {
             defer.reject(error)
           } else {
@@ -634,12 +634,9 @@ export class ToolRunner extends events.EventEmitter {
         }
         cp.stdin?.write(data)
       } catch (err) {
+        this._debug(`Failed to pipe output of ${toolPathFirst} to ${toolPath}`)
         this._debug(
-          'Failed to pipe output of ' + toolPathFirst + ' to ' + toolPath
-        )
-        this._debug(
-          toolPath +
-            ' might have exited due to errors prematurely. Verify the arguments passed are valid.'
+          `${toolPath} might have exited due to errors prematurely. Verify the arguments passed are valid.`
         )
       }
     })
@@ -649,10 +646,13 @@ export class ToolRunner extends events.EventEmitter {
       }
       successFirst = !optionsNonNull.failOnStdErr
       if (!optionsNonNull.silent) {
-        var s = optionsNonNull.failOnStdErr
-          ? optionsNonNull.errStream!
-          : optionsNonNull.outStream!
-        s.write(data)
+        const s = optionsNonNull.failOnStdErr
+          ? optionsNonNull.errStream
+          : optionsNonNull.outStream
+
+        if (s) {
+          s.write(data)
+        }
       }
     })
     cpFirst.on('error', (err: Error) => {
@@ -661,24 +661,24 @@ export class ToolRunner extends events.EventEmitter {
         fileStream.end()
       }
       cp.stdin?.end()
-      error = new Error(toolPathFirst + ' failed. ' + err.message)
-      if (waitingEvents == 0) {
+      error = new Error(`${toolPathFirst} failed. ${err.message}`)
+      if (waitingEvents === 0) {
         defer.reject(error)
       }
     })
-    cpFirst.on('close', (code: number, signal: any) => {
+    cpFirst.on('close', (code: number) => {
       waitingEvents-- //first process is complete
-      if (code != 0 && !optionsNonNull.ignoreReturnCode) {
+      if (code !== 0 && !optionsNonNull.ignoreReturnCode) {
         successFirst = false
         returnCodeFirst = code
         returnCode = returnCodeFirst
       }
-      this._debug('success of first tool:' + successFirst)
+      this._debug(`success of first tool:${successFirst}`)
       if (fileStream) {
         fileStream.end()
       }
       cp.stdin?.end()
-      if (waitingEvents == 0) {
+      if (waitingEvents === 0) {
         if (error) {
           defer.reject(error)
         } else {
@@ -687,12 +687,12 @@ export class ToolRunner extends events.EventEmitter {
       }
     })
 
-    var stdbuffer: string = ''
+    const stdbuffer = ''
     cp.stdout?.on('data', (data: Buffer) => {
       this.emit('stdout', data)
 
       if (!optionsNonNull.silent) {
-        optionsNonNull.outStream!.write(data)
+        optionsNonNull.outStream?.write(data)
       }
 
       this._processLineBuffer(data, stdbuffer, (line: string) => {
@@ -700,16 +700,19 @@ export class ToolRunner extends events.EventEmitter {
       })
     })
 
-    var errbuffer: string = ''
+    const errbuffer = ''
     cp.stderr?.on('data', (data: Buffer) => {
       this.emit('stderr', data)
 
       success = !optionsNonNull.failOnStdErr
       if (!optionsNonNull.silent) {
-        var s = optionsNonNull.failOnStdErr
-          ? optionsNonNull.errStream!
-          : optionsNonNull.outStream!
-        s.write(data)
+        const s = optionsNonNull.failOnStdErr
+          ? optionsNonNull.errStream
+          : optionsNonNull.outStream
+
+        if (s) {
+          s.write(data)
+        }
       }
 
       this._processLineBuffer(data, errbuffer, (line: string) => {
@@ -719,15 +722,15 @@ export class ToolRunner extends events.EventEmitter {
 
     cp.on('error', (err: Error) => {
       waitingEvents-- //process is done with errors
-      error = new Error(toolPath + ' failed. ' + err.message)
-      if (waitingEvents == 0) {
+      error = new Error(`${toolPath} failed. ${err.message}`)
+      if (waitingEvents === 0) {
         defer.reject(error)
       }
     })
 
-    cp.on('close', (code: number, signal: any) => {
+    cp.on('close', (code: number) => {
       waitingEvents-- //process is complete
-      this._debug('rc:' + code)
+      this._debug(`rc:${code}`)
       returnCode = code
 
       if (stdbuffer.length > 0) {
@@ -738,22 +741,22 @@ export class ToolRunner extends events.EventEmitter {
         this.emit('errline', errbuffer)
       }
 
-      if (code != 0 && !optionsNonNull.ignoreReturnCode) {
+      if (code !== 0 && !optionsNonNull.ignoreReturnCode) {
         success = false
       }
 
-      this._debug('success:' + success)
+      this._debug(`success:${success}`)
 
       if (!successFirst) {
         //in the case output is piped to another tool, check exit code of both tools
         error = new Error(
-          toolPathFirst + ' failed with return code: ' + returnCodeFirst
+          `${toolPathFirst} failed with return code: ${returnCodeFirst}`
         )
       } else if (!success) {
-        error = new Error(toolPath + ' failed with return code: ' + code)
+        error = new Error(`${toolPath} failed with return code: ${code}`)
       }
 
-      if (waitingEvents == 0) {
+      if (waitingEvents === 0) {
         if (error) {
           defer.reject(error)
         } else {
@@ -762,7 +765,7 @@ export class ToolRunner extends events.EventEmitter {
       }
     })
 
-    return <Q.Promise<number>>defer.promise
+    return defer.promise
   }
 
   /**
@@ -773,16 +776,16 @@ export class ToolRunner extends events.EventEmitter {
    * @param     val        string cmdline or array of strings
    * @returns   ToolRunner
    */
-  public arg(val: string | string[]): ToolRunner {
+  arg(val: string | string[]): ToolRunner {
     if (!val) {
       return this
     }
 
     if (val instanceof Array) {
-      this._debug(this.toolPath + ' arg: ' + JSON.stringify(val))
+      this._debug(`${this.toolPath} arg: ${JSON.stringify(val)}`)
       this.args = this.args.concat(val)
     } else if (typeof val === 'string') {
-      this._debug(this.toolPath + ' arg: ' + val)
+      this._debug(`${this.toolPath} arg: ${val}`)
       this.args = this.args.concat(val.trim())
     }
 
@@ -797,12 +800,12 @@ export class ToolRunner extends events.EventEmitter {
    * @param     val        string argument line
    * @returns   ToolRunner
    */
-  public line(val: string): ToolRunner {
+  line(val: string): ToolRunner {
     if (!val) {
       return this
     }
 
-    this._debug(this.toolPath + ' arg: ' + val)
+    this._debug(`${this.toolPath} arg: ${val}`)
     this.args = this.args.concat(this._argStringToArray(val))
     return this
   }
@@ -816,7 +819,7 @@ export class ToolRunner extends events.EventEmitter {
    * @param     val     string cmdline or array of strings
    * @returns   ToolRunner
    */
-  public argIf(condition: any, val: any) {
+  argIf(condition: boolean, val: string | string[]): ToolRunner {
     if (condition) {
       this.arg(val)
     }
@@ -829,7 +832,7 @@ export class ToolRunner extends events.EventEmitter {
    * @param file  optional filename to additionally stream the output to.
    * @returns {ToolRunner}
    */
-  public pipeExecOutputToTool(tool: ToolRunner, file?: string): ToolRunner {
+  pipeExecOutputToTool(tool: ToolRunner, file?: string): ToolRunner {
     this.pipeOutputToTool = tool
     this.pipeOutputToFile = file
     return this
@@ -844,32 +847,32 @@ export class ToolRunner extends events.EventEmitter {
    * @param     options  optional exec options.  See IExecOptions
    * @returns   number
    */
-  public exec(options?: IExecOptions): Q.Promise<number> {
+  async exec(options?: IExecOptions): Promise<number> {
     if (this.pipeOutputToTool) {
       return this.execWithPiping(this.pipeOutputToTool, options)
     }
 
-    var defer = Q.defer<number>()
+    const defer = Q.defer<number>()
 
-    this._debug('exec tool: ' + this.toolPath)
+    this._debug(`exec tool: ${this.toolPath}`)
     this._debug('arguments:')
-    this.args.forEach(arg => {
-      this._debug('   ' + arg)
-    })
+    for (const arg of this.args) {
+      this._debug(`   ${arg}`)
+    }
 
     const optionsNonNull = this._cloneExecOptions(options)
     if (!optionsNonNull.silent) {
-      optionsNonNull.outStream!.write(
+      optionsNonNull.outStream?.write(
         this._getCommandString(optionsNonNull) + os.EOL
       )
     }
 
-    let state = new ExecState(optionsNonNull, this.toolPath)
+    const state = new ExecState(optionsNonNull, this.toolPath)
     state.on('debug', (message: string) => {
       this._debug(message)
     })
 
-    let cp = child.spawn(
+    const cp = child.spawn(
       this._getSpawnFileName(),
       this._getSpawnArgs(optionsNonNull),
       this._getSpawnOptions(options)
@@ -880,16 +883,16 @@ export class ToolRunner extends events.EventEmitter {
     // stream. Adding this event forces a flush before the child streams are closed.
     cp.stdout?.on('finish', () => {
       if (!optionsNonNull.silent) {
-        optionsNonNull.outStream!.write(os.EOL)
+        optionsNonNull.outStream?.write(os.EOL)
       }
     })
 
-    var stdbuffer: string = ''
+    const stdbuffer = ''
     cp.stdout?.on('data', (data: Buffer) => {
       this.emit('stdout', data)
 
       if (!optionsNonNull.silent) {
-        optionsNonNull.outStream!.write(data)
+        optionsNonNull.outStream?.write(data)
       }
 
       this._processLineBuffer(data, stdbuffer, (line: string) => {
@@ -897,16 +900,19 @@ export class ToolRunner extends events.EventEmitter {
       })
     })
 
-    var errbuffer: string = ''
+    const errbuffer = ''
     cp.stderr?.on('data', (data: Buffer) => {
       state.processStderr = true
       this.emit('stderr', data)
 
       if (!optionsNonNull.silent) {
-        var s = optionsNonNull.failOnStdErr
-          ? optionsNonNull.errStream!
-          : optionsNonNull.outStream!
-        s.write(data)
+        const s = optionsNonNull.failOnStdErr
+          ? optionsNonNull.errStream
+          : optionsNonNull.outStream
+
+        if (s) {
+          s.write(data)
+        }
       }
 
       this._processLineBuffer(data, errbuffer, (line: string) => {
@@ -921,14 +927,14 @@ export class ToolRunner extends events.EventEmitter {
       state.CheckComplete()
     })
 
-    cp.on('exit', (code: number, signal: any) => {
+    cp.on('exit', (code: number) => {
       state.processExitCode = code
       state.processExited = true
       this._debug(`Exit code ${code} received from tool '${this.toolPath}'`)
       state.CheckComplete()
     })
 
-    cp.on('close', (code: number, signal: any) => {
+    cp.on('close', (code: number) => {
       state.processExitCode = code
       state.processExited = true
       state.processClosed = true
@@ -967,39 +973,41 @@ export class ToolRunner extends events.EventEmitter {
    * @param     options  optional exec options.  See IExecSyncOptions
    * @returns   IExecSyncResult
    */
-  public execSync(options?: IExecSyncOptions): IExecSyncResult {
-    this._debug('exec tool: ' + this.toolPath)
+  execSync(options?: IExecSyncOptions): IExecSyncResult {
+    this._debug(`exec tool: ${this.toolPath}`)
     this._debug('arguments:')
-    this.args.forEach(arg => {
-      this._debug('   ' + arg)
-    })
+    for (const arg of this.args) {
+      this._debug(`   ${arg}`)
+    }
 
-    var success = true
     options = this._cloneExecOptions(options as IExecOptions)
 
     if (!options.silent) {
-      options.outStream!.write(
+      options.outStream?.write(
         this._getCommandString(options as IExecOptions) + os.EOL
       )
     }
 
-    var r = child.spawnSync(
+    const r = child.spawnSync(
       this._getSpawnFileName(),
       this._getSpawnArgs(options as IExecOptions),
       this._getSpawnSyncOptions(options)
     )
 
     if (!options.silent && r.stdout && r.stdout.length > 0) {
-      options.outStream!.write(r.stdout)
+      options.outStream?.write(r.stdout)
     }
 
     if (!options.silent && r.stderr && r.stderr.length > 0) {
-      options.errStream!.write(r.stderr)
+      options.errStream?.write(r.stderr)
     }
 
-    var res: IExecSyncResult = <IExecSyncResult>{code: r.status, error: r.error}
-    res.stdout = r.stdout ? r.stdout.toString() : ''
-    res.stderr = r.stderr ? r.stderr.toString() : ''
+    const res: IExecSyncResult = {
+      code: r.status,
+      error: r.error,
+      stdout: r.stdout ? r.stdout.toString() : '',
+      stderr: r.stderr ? r.stderr.toString() : ''
+    }
     return res
   }
 }
@@ -1014,7 +1022,7 @@ class ExecState extends events.EventEmitter {
 
     this.options = options
     this.toolPath = toolPath
-    let delay = process.env['TASKLIB_TEST_TOOLRUNNER_EXITDELAY']
+    const delay = process.env['TASKLIB_TEST_TOOLRUNNER_EXITDELAY']
     if (delay) {
       this.delay = parseInt(delay)
     }
@@ -1031,7 +1039,7 @@ class ExecState extends events.EventEmitter {
   private timeout?: NodeJS.Timer
   private toolPath: string
 
-  public CheckComplete(): void {
+  CheckComplete(): void {
     if (this.done) {
       return
     }
@@ -1040,14 +1048,14 @@ class ExecState extends events.EventEmitter {
       this._setResult()
     } else if (this.processExited) {
       this.timeout = global.setTimeout(
-        ExecState.HandleTimeout,
+        this.HandleTimeout.bind(this),
         this.delay,
         this
       )
     }
   }
 
-  private _debug(message: any): void {
+  private _debug(message: string): void {
     this.emit('debug', message)
   }
 
@@ -1063,7 +1071,7 @@ class ExecState extends events.EventEmitter {
             this.processError
           )
         )
-      } else if (this.processExitCode != 0 && !this.options.ignoreReturnCode) {
+      } else if (this.processExitCode !== 0 && !this.options.ignoreReturnCode) {
         error = new Error(
           util.format(
             "The process '%s' failed with exit code %s",
@@ -1091,13 +1099,13 @@ class ExecState extends events.EventEmitter {
     this.emit('done', error, this.processExitCode)
   }
 
-  private static HandleTimeout(state: ExecState) {
+  private HandleTimeout(state: ExecState): void {
     if (state.done) {
       return
     }
 
     if (!state.processClosed && state.processExited) {
-      console.log(
+      core.info(
         util.format(
           "The STDIO streams did not close within %s seconds of the exit event from process '%s'. This may indicate a child process inherited the STDIO streams and has not yet exited.",
           state.delay / 1000,

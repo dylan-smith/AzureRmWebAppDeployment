@@ -1,5 +1,5 @@
 import * as core from '@actions/core'
-import {TaskParameters, DeploymentType} from '../operations/TaskParameters'
+import {TaskParameters} from '../operations/TaskParameters'
 import * as Constant from '../operations/Constants'
 import {PublishProfileWebAppDeploymentProvider} from './PublishProfileWebAppDeploymentProvider'
 // import { BuiltInLinuxWebAppDeploymentProvider } from './BuiltInLinuxWebAppDeploymentProvider';
@@ -8,8 +8,8 @@ import {IWebAppDeploymentProvider} from './IWebAppDeploymentProvider'
 // import { WindowsWebAppZipDeployProvider } from './WindowsWebAppZipDeployProvider';
 // import { WindowsWebAppRunFromZipProvider } from './WindowsWebAppRunFromZipProvider';
 // import { ContainerWebAppDeploymentProvider } from './ContainerWebAppDeploymentProvider';
-import * as tl from '../task-lib/task'
-import {PackageType} from '../webdeployment-common-v2/packageUtility'
+// import * as tl from '../task-lib/task'
+// import {PackageType} from '../webdeployment-common-v2/packageUtility'
 // import { WindowsWebAppWarDeployProvider } from './WindowsWebAppWarDeployProvider';
 
 export class DeploymentFactory {
@@ -19,7 +19,7 @@ export class DeploymentFactory {
     this._taskParams = taskParams
   }
 
-  public async GetDeploymentProvider(): Promise<IWebAppDeploymentProvider> {
+  async GetDeploymentProvider(): Promise<IWebAppDeploymentProvider> {
     switch (this._taskParams.ConnectionType) {
       case Constant.ConnectionType.PublishProfile:
         return new PublishProfileWebAppDeploymentProvider(this._taskParams)
@@ -52,8 +52,7 @@ export class DeploymentFactory {
     IWebAppDeploymentProvider
   > {
     core.debug(
-      'Package type of deployment is: ' +
-        this._taskParams.Package?.getPackageType()
+      `Package type of deployment is: ${this._taskParams.Package?.getPackageType()}`
     )
     // switch(this._taskParams.Package.getPackageType()){
     //     case PackageType.war:
@@ -71,7 +70,7 @@ export class DeploymentFactory {
     if (this._taskParams.UseWebDeploy) {
       return await this._getUserSelectedDeploymentProviderForWindow()
     } else {
-      var _isMSBuildPackage = await this._taskParams.Package?.isMSBuildPackage()
+      // const _isMSBuildPackage = await this._taskParams.Package?.isMSBuildPackage()
       // if(_isMSBuildPackage || this._taskParams.VirtualApplication) {
       //     return new WindowsWebAppWebDeployProvider(this._taskParams);
       // } else if(this._taskParams.ScriptType) {

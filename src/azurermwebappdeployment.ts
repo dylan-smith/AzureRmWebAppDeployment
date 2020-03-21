@@ -25,6 +25,7 @@ async function run(): Promise<void> {
     //var deploymentProvider = await deploymentFactory.GetDeploymentProvider();
 
     core.info(`got past ${taskParams.ConnectionType}`)
+    core.info(`got past ${typeof deploymentFactory}`)
 
     //tl.debug("Predeployment Step Started");
     //await deploymentProvider.PreDeploymentStep();

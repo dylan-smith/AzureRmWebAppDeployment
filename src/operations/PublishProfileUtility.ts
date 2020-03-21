@@ -11,6 +11,24 @@ import * as util from 'util'
 
 const ERROR_FILE_NAME = 'error.txt'
 
+export interface IPubXml {
+  Project: IPubXmlPropertyGroupCollection
+}
+
+export interface IPubXmlPropertyGroupCollection {
+  PropertyGroup?: IPubXmlPropertyGroup[]
+}
+
+export interface IPubXmlPropertyGroup {
+  WebPublishMethod: string[]
+  MSDeployServiceURL: string[]
+  DeployIisAppPath: string[]
+  UserName: string[]
+  EnableMSDeployAppOffline: string[]
+  SkipExtraFilesOnServer: string[]
+  SiteUrlToLaunchAfterPublish: string[]
+}
+
 export interface PublishingProfile {
   PublishUrl: string
   UserName: string
@@ -21,14 +39,14 @@ export interface PublishingProfile {
 }
 
 export class PublishProfileUtility {
-  private _publishProfileJs: any = null
+  private _publishProfileJs?: IPubXmlPropertyGroup
   private _publishProfilePath: string
 
   constructor(publishProfilePath: string) {
     this._publishProfilePath = publishProfilePath
   }
 
-  public async GetTaskParametersFromPublishProfileFile(
+  async GetTaskParametersFromPublishProfileFile(
     taskParams: TaskParameters
   ): Promise<PublishingProfile> {
     try {
@@ -38,28 +56,33 @@ export class PublishProfileUtility {
     } catch (error) {
       throw new Error(error)
     }
-    var msDeployPublishingProfile: PublishingProfile = {
-      WebAppName: this._publishProfileJs.DeployIisAppPath[0],
-      TakeAppOfflineFlag: this._publishProfileJs.hasOwnProperty(
-        Constant.PublishProfileXml.EnableMSDeployAppOffline
-      )
-        ? this._publishProfileJs.EnableMSDeployAppOffline[0]
-        : false,
-      RemoveAdditionalFilesFlag: this._publishProfileJs.hasOwnProperty(
-        Constant.PublishProfileXml.SkipExtraFilesOnServer
-      )
-        ? this._publishProfileJs.SkipExtraFilesOnServer[0]
-        : false,
-      PublishUrl: this._publishProfileJs.MSDeployServiceURL[0],
-      UserName: this._publishProfileJs.UserName[0],
-      UserPWD: taskParams.PublishProfilePassword || ''
+
+    if (this._publishProfileJs) {
+      const msDeployPublishingProfile: PublishingProfile = {
+        WebAppName: this._publishProfileJs.DeployIisAppPath[0],
+        TakeAppOfflineFlag: this._publishProfileJs.hasOwnProperty(
+          Constant.PublishProfileXml.EnableMSDeployAppOffline
+        )
+          ? this._publishProfileJs.EnableMSDeployAppOffline[0] === 'true'
+          : false,
+        RemoveAdditionalFilesFlag: this._publishProfileJs.hasOwnProperty(
+          Constant.PublishProfileXml.SkipExtraFilesOnServer
+        )
+          ? this._publishProfileJs.SkipExtraFilesOnServer[0] === 'true'
+          : false,
+        PublishUrl: this._publishProfileJs.MSDeployServiceURL[0],
+        UserName: this._publishProfileJs.UserName[0],
+        UserPWD: taskParams.PublishProfilePassword || ''
+      }
+      return msDeployPublishingProfile
     }
-    return msDeployPublishingProfile
+
+    throw new Error('Publish Profile not set')
   }
 
-  public async GetPropertyValuefromPublishProfile(
-    propertyKey: string
-  ): Promise<any> {
+  async GetPropertyValuefromPublishProfile(
+    propertyKey: keyof IPubXmlPropertyGroup
+  ): Promise<string> {
     try {
       if (this._publishProfileJs === null) {
         this._publishProfileJs = await this.GetPublishProfileJsonFromFile()
@@ -67,26 +90,31 @@ export class PublishProfileUtility {
     } catch (error) {
       throw new Error(error)
     }
+
     return new Promise((response, reject) => {
-      this._publishProfileJs.hasOwnProperty(propertyKey)
-        ? response(this._publishProfileJs[propertyKey][0])
-        : reject(
-            util.format(
-              '[%s] Property does not exist in publish profile',
-              propertyKey
+      if (this._publishProfileJs) {
+        this._publishProfileJs.hasOwnProperty(propertyKey)
+          ? response(this._publishProfileJs[propertyKey][0])
+          : reject(
+              util.format(
+                '[%s] Property does not exist in publish profile',
+                propertyKey
+              )
             )
-          )
+      }
+
+      throw new Error('Publish Profile not set')
     })
   }
 
-  private async GetPublishProfileJsonFromFile(): Promise<any> {
+  private async GetPublishProfileJsonFromFile(): Promise<IPubXmlPropertyGroup> {
     return new Promise((response, reject) => {
-      var pubxmlFile = packageUtility.PackageUtility.getPackagePath(
+      const pubxmlFile = packageUtility.PackageUtility.getPackagePath(
         this._publishProfilePath
       )
-      var publishProfileXML = fs.readFileSync(pubxmlFile)
-      parseString(publishProfileXML, (error, result) => {
-        if (!!error) {
+      const publishProfileXML = fs.readFileSync(pubxmlFile)
+      parseString(publishProfileXML, (error, result: IPubXml) => {
+        if (error) {
           reject(
             util.format(
               'Unable to parse publishProfileXML file, Error: %s',
@@ -94,50 +122,49 @@ export class PublishProfileUtility {
             )
           )
         }
-        var propertyGroup =
+        const propertyGroups =
           result && result.Project && result.Project.PropertyGroup
             ? result.Project.PropertyGroup
-            : null
-        if (propertyGroup) {
-          for (var index in propertyGroup) {
+            : undefined
+        if (propertyGroups) {
+          for (const propertyGroup of propertyGroups) {
             if (
-              propertyGroup[index] &&
-              propertyGroup[index].WebPublishMethod[0] ===
+              propertyGroup.WebPublishMethod &&
+              propertyGroup.WebPublishMethod.length > 0 &&
+              propertyGroup.WebPublishMethod[0] ===
                 Constant.PublishProfileXml.MSDeploy
             ) {
               if (
-                !propertyGroup[index].hasOwnProperty(
+                !propertyGroup.hasOwnProperty(
                   Constant.PublishProfileXml.MSDeployServiceURL
                 ) ||
-                !propertyGroup[index].hasOwnProperty(
+                !propertyGroup.hasOwnProperty(
                   Constant.PublishProfileXml.DeployIisAppPath
                 ) ||
-                !propertyGroup[index].hasOwnProperty(
+                !propertyGroup.hasOwnProperty(
                   Constant.PublishProfileXml.UserName
                 )
               ) {
-                reject('Publish profile file is invalid.')
+                reject(new Error('Publish profile file is invalid.'))
               }
-              core.debug(
-                `Publish Profile: ${JSON.stringify(propertyGroup[index])}`
-              )
-              response(propertyGroup[index])
+              core.debug(`Publish Profile: ${JSON.stringify(propertyGroup)}`)
+              response(propertyGroup)
             }
           }
         }
-        reject('Error : No such deploying method exists')
+        reject(new Error('Error : No such deploying method exists'))
       })
     })
   }
 
-  public async RunCmd(cmdTool: string, cmdArgs: string) {
-    var deferred = Q.defer()
-    var cmdError: Error
-    var errorFile = path.join(
+  async RunCmd(cmdTool: string, cmdArgs: string): Promise<void> {
+    const deferred = Q.defer<void>()
+    let cmdError: Error
+    const errorFile = path.join(
       tl.getVariable('GITHUB_WORKSPACE') || '',
       ERROR_FILE_NAME
     )
-    var errObj = fs.createWriteStream(errorFile)
+    const errObj = fs.createWriteStream(errorFile)
     errObj.on('finish', () => {
       if (cmdError) {
         deferred.reject(cmdError)
@@ -147,7 +174,7 @@ export class PublishProfileUtility {
     })
 
     try {
-      await tl.exec(cmdTool, cmdArgs, <any>{
+      await tl.exec(cmdTool, cmdArgs, {
         errStream: errObj,
         outStream: process.stdout,
         failOnStdErr: true,
