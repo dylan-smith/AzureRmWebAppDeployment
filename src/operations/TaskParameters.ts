@@ -1,8 +1,3 @@
-//import tl = require('azure-pipelines-task-lib/task');
-//import * as Constant from '../operations/Constants'
-//import { Package, PackageType } from 'webdeployment-common-v2/packageUtility';
-//var webCommonUtility = require('webdeployment-common-v2/utility.js');
-
 import * as core from '@actions/core'
 import * as Constant from './Constants'
 import {Package, PackageType} from '../webdeployment-common-v2/packageUtility'

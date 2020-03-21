@@ -1,8 +1,3 @@
-//import tl = require('azure-pipelines-task-lib/task');
-//import utility = require('./utility');
-//var zipUtility = require('webdeployment-common-v2/ziputility.js');
-//import path = require('path');
-
 import * as utility from './utility'
 import * as util from 'util'
 import * as core from '@actions/core'
