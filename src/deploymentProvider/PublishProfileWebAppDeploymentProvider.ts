@@ -5,7 +5,7 @@ import {
   PublishingProfile
 } from '../operations/PublishProfileUtility'
 // import { FileTransformsUtility } from '../operations/FileTransformsUtility';
-// import { AzureAppServiceUtility } from '../operations/AzureAppServiceUtility';
+import {AzureAppServiceUtility} from '../operations/AzureAppServiceUtility'
 import * as tl from '../task-lib/task'
 import * as fs from 'fs'
 import * as path from 'path'
@@ -40,8 +40,7 @@ export class PublishProfileWebAppDeploymentProvider
         const siteUrl = await this.publishProfileUtility.GetPropertyValuefromPublishProfile(
           'SiteUrlToLaunchAfterPublish'
         )
-        core.debug(`DELETE THIS LINE - ${siteUrl}`)
-        // await AzureAppServiceUtility.pingApplication(siteUrl);
+        await AzureAppServiceUtility.pingApplication(siteUrl)
         // tl.setVariable('AppServiceApplicationUrl', siteUrl);
       } catch (error) {
         core.debug(`Unable to ping webapp, Error: ${error}`)

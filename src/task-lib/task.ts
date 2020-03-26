@@ -10,6 +10,7 @@ import * as trm from './toolrunner'
 
 export const getVariable = im._getVariable
 export const exist = im._exist
+export const which = im._which
 
 /**
  * Gets the value of an input and converts to a bool.  Convenience.
@@ -605,6 +606,53 @@ export async function exec(
     }
   }
   return tr.exec(options)
+}
+
+/**
+ * Convenience factory to create a ToolRunner.
+ *
+ * @param     tool     path to tool to exec
+ * @returns   ToolRunner
+ */
+export function tool(toolPath: string) {
+  let tr: trm.ToolRunner = new trm.ToolRunner(toolPath)
+  tr.on('debug', (message: string) => {
+    core.debug(message)
+  })
+
+  return tr
+}
+
+/**
+ * Exec a tool synchronously.  Convenience wrapper over ToolRunner to execSync with args in one call.
+ * Output will be *not* be streamed to the live console.  It will be returned after execution is complete.
+ * Appropriate for short running tools
+ * Returns IExecResult with output and return code
+ *
+ * @param     tool     path to tool to exec
+ * @param     args     an arg string or array of args
+ * @param     options  optional exec options.  See IExecSyncOptions
+ * @returns   IExecSyncResult
+ */
+export function execSync(
+  toolPath: string,
+  args: string | string[],
+  options?: trm.IExecSyncOptions
+): trm.IExecSyncResult {
+  let tr: trm.ToolRunner = tool(toolPath)
+  tr.on('debug', (data: string) => {
+    core.debug(data)
+  })
+
+  if (args) {
+    if (args instanceof Array) {
+      tr.arg(args)
+    } else if (typeof args === 'string') {
+      tr.line(args)
+    }
+  }
+
+  return tr.execSync(options)
 }
 
 /**
