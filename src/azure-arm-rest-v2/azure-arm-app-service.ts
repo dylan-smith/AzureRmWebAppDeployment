@@ -15,9 +15,9 @@ export class AzureAppService {
   private _name: string
   private _slot?: string
   private _appKind?: string
-  public _client: ServiceClient
+  _client: ServiceClient
   private _appServiceConfigurationDetails?: AzureAppServiceConfigurationDetails
-  private _appServicePublishingProfile: any
+  private _appServicePublishingProfile?: string
   private _appServiceApplicationSetings?: AzureAppServiceConfigurationDetails
 
   constructor(
@@ -35,7 +35,7 @@ export class AzureAppService {
     this._resourceGroup = resourceGroup
     this._name = name
     this._slot =
-      slot && slot.toLowerCase() == constants.productionSlot ? undefined : slot
+      slot && slot.toLowerCase() === constants.productionSlot ? undefined : slot
     this._appKind = appKind
   }
 
@@ -228,7 +228,7 @@ export class AzureAppService {
   //         return this._appServiceConfigurationDetails;
   //     }
 
-  public async getPublishingProfileWithSecrets(force?: boolean): Promise<any> {
+  async getPublishingProfileWithSecrets(force?: boolean): Promise<string> {
     if (force || !this._appServicePublishingProfile) {
       this._appServicePublishingProfile = await this._getPublishingProfileWithSecrets()
     }
@@ -449,11 +449,11 @@ export class AzureAppService {
   //         return this._slot ? this._slot : "production";
   //     }
 
-  private async _getPublishingProfileWithSecrets(): Promise<any> {
+  private async _getPublishingProfileWithSecrets(): Promise<string> {
     try {
-      var httpRequest = new webClient.WebRequest()
+      const httpRequest = new webClient.WebRequest()
       httpRequest.method = 'POST'
-      var slotUrl: string = !!this._slot ? `/slots/${this._slot}` : ''
+      const slotUrl: string = this._slot ? `/slots/${this._slot}` : ''
       httpRequest.uri = this._client.getRequestUri(
         `//subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/providers/Microsoft.Web/sites/{name}/${slotUrl}/publishxml`,
         {
@@ -464,13 +464,14 @@ export class AzureAppService {
         '2016-08-01'
       )
 
-      var response = await this._client.beginRequest(httpRequest)
-      if (response.statusCode != 200) {
+      const response = await this._client.beginRequest(httpRequest)
+      if (response.statusCode !== 200) {
         throw ToError(response)
       }
 
-      var publishingProfile = response.body
-      return publishingProfile
+      if (response.body) {
+        return response.body
+      }
     } catch (error) {
       throw Error(
         util.format(
@@ -480,6 +481,13 @@ export class AzureAppService {
         )
       )
     }
+
+    throw Error(
+      util.format(
+        "Failed to fetch App Service '%s' publishing profile.",
+        this._getFormattedName()
+      )
+    )
   }
 
   //     private async _getApplicationSettings(): Promise<AzureAppServiceConfigurationDetails> {

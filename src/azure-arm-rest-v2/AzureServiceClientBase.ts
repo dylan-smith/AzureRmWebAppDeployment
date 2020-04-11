@@ -1,4 +1,4 @@
-import * as tl from '../task-lib/task'
+// import * as tl from '../task-lib/task'
 import * as msRestAzure from './azure-arm-common'
 import * as webClient from './webClient'
 import * as core from '@actions/core'
@@ -21,10 +21,10 @@ const CorrelationIdInResponse = 'x-ms-correlation-request-id'
 // }
 
 export class AzureError {
-  public code?: string
-  public message?: string
-  public statusCode?: number
-  public details?: string
+  code?: string
+  message?: string
+  statusCode?: number
+  details?: string
 }
 
 // export interface ApiCallback {
@@ -32,15 +32,18 @@ export class AzureError {
 // }
 
 export function ToError(response: webClient.WebResponse): AzureError {
-  var error = new AzureError()
+  const error = new AzureError()
   error.statusCode = response.statusCode
   error.message = response.body
-  if (response.body && response.body.error) {
-    error.code = response.body.error.code
-    error.message = response.body.error.message
-    error.details = response.body.error.details
+  if (response.body) {
+    const body = JSON.parse(response.body)
+    if (body.error) {
+      error.code = body.error.code
+      error.message = body.error.message
+      error.details = body.error.details
 
-    core.error(`error;code=${error.code}`)
+      core.error(`error;code=${error.code}`)
+    }
   }
 
   return error
@@ -64,41 +67,41 @@ export class AzureServiceClientBase {
 
     this.credentials = credentials
     this.baseUri = this.credentials.baseUrl
-    this.longRunningOperationRetryTimeout = !!timeout ? timeout : 0 // In minutes
+    this.longRunningOperationRetryTimeout = timeout ? timeout : 0 // In minutes
   }
 
   // public getCredentials(): msRestAzure.ApplicationTokenCredentials {
   //     return this.credentials;
   // }
 
-  public getRequestUriForBaseUri(
+  getRequestUriForBaseUri(
     baseUri: string,
     uriFormat: string,
     parameters: {[key: string]: string},
     queryParameters?: string[],
     apiVersion?: string
   ): string {
-    var requestUri = baseUri + uriFormat
-    for (var key in parameters) {
+    let requestUri = baseUri + uriFormat
+    for (const key in parameters) {
       requestUri = requestUri.replace(key, encodeURIComponent(parameters[key]))
     }
 
     // trim all duplicate forward slashes in the url
-    var regex = /([^:]\/)\/+/gi
+    const regex = /([^:]\/)\/+/gi
     requestUri = requestUri.replace(regex, '$1')
 
     // process query paramerters
     queryParameters = queryParameters || []
-    let targetApiVersion: string | undefined = apiVersion || this.apiVersion
+    const targetApiVersion: string | undefined = apiVersion || this.apiVersion
     if (targetApiVersion) {
       queryParameters.push(
-        'api-version=' + encodeURIComponent(targetApiVersion)
+        `api-version=${encodeURIComponent(targetApiVersion)}`
       )
     } else {
       throw new Error('Could not determine api-version to use')
     }
     if (queryParameters.length > 0) {
-      requestUri += '?' + queryParameters.join('&')
+      requestUri += `?${queryParameters.join('&')}`
     }
 
     return requestUri
@@ -116,48 +119,53 @@ export class AzureServiceClientBase {
   //     return headers;
   // }
 
-  public async beginRequest(
+  async beginRequest(
     request: webClient.WebRequest
   ): Promise<webClient.WebResponse> {
-    var token = await this.credentials.getToken()
+    let token = await this.credentials.getToken()
 
     request.headers = request.headers || {}
-    request.headers['Authorization'] = 'Bearer ' + token
+    request.headers['Authorization'] = `Bearer ${token}`
     if (this.acceptLanguage) {
       request.headers['accept-language'] = this.acceptLanguage
     }
     request.headers['Content-Type'] = 'application/json; charset=utf-8'
 
-    var httpResponse = null
+    let httpResponse = null
 
     try {
       httpResponse = await webClient.sendRequest(request)
-      if (
-        httpResponse.statusCode === 401 &&
-        httpResponse.body &&
-        httpResponse.body.error &&
-        httpResponse.body.error.code === 'ExpiredAuthenticationToken'
-      ) {
-        // The access token might have expire. Re-issue the request after refreshing the token.
-        token = await this.credentials.getToken(true)
-        request.headers['Authorization'] = 'Bearer ' + token
-        httpResponse = await webClient.sendRequest(request)
+      if (httpResponse.body) {
+        const body = JSON.parse(httpResponse.body)
+
+        if (
+          httpResponse.statusCode === 401 &&
+          body.error &&
+          body.error.code === 'ExpiredAuthenticationToken'
+        ) {
+          // The access token might have expire. Re-issue the request after refreshing the token.
+          token = await this.credentials.getToken(true)
+          request.headers['Authorization'] = `Bearer ${token}`
+          httpResponse = await webClient.sendRequest(request)
+        }
       }
 
-      if (!!httpResponse.headers[CorrelationIdInResponse]) {
+      if (
+        httpResponse.headers &&
+        httpResponse.headers[CorrelationIdInResponse]
+      ) {
         core.debug(
           `Correlation ID from ARM api call response : ${httpResponse.headers[CorrelationIdInResponse]}`
         )
       }
     } catch (exception) {
-      let exceptionString: string = exception.toString()
+      const exceptionString: string = exception.toString()
       if (
-        exceptionString.indexOf(
+        exceptionString.includes(
           "Hostname/IP doesn't match certificates's altnames"
-        ) != -1 ||
-        exceptionString.indexOf('unable to verify the first certificate') !=
-          -1 ||
-        exceptionString.indexOf('unable to get local issuer certificate') != -1
+        ) ||
+        exceptionString.includes('unable to verify the first certificate') ||
+        exceptionString.includes('unable to get local issuer certificate')
       ) {
         core.warning(
           "To use a certificate in App Service, the certificate must be signed by a trusted certificate authority. If your web app gives you certificate validation errors, you're probably using a self-signed certificate and to resolve them you need to set a variable named VSTS_ARM_REST_IGNORE_SSL_ERRORS to the value true in the build or release definition"
@@ -168,13 +176,15 @@ export class AzureServiceClientBase {
     }
 
     if (
-      httpResponse.headers['azure-asyncoperation'] ||
-      httpResponse.headers['location']
-    )
+      httpResponse.headers &&
+      (httpResponse.headers['azure-asyncoperation'] ||
+        httpResponse.headers['location'])
+    ) {
       core.debug(
-        request.uri + ' ==> ' + httpResponse.headers['azure-asyncoperation'] ||
-          httpResponse.headers['location']
+        `${request.uri} ==> ${httpResponse.headers['azure-asyncoperation'] ||
+          httpResponse.headers['location']}`
       )
+    }
 
     return httpResponse
   }
@@ -284,27 +294,26 @@ export class AzureServiceClientBase {
   //     }
   // }
 
-  public getFormattedError(error: any): string {
+  getFormattedError(error: AzureError): string {
     if (error && error.message) {
       if (error.statusCode) {
-        var errorMessage =
-          typeof error.message.valueOf() == 'string'
-            ? error.message
-            : (error.message.Code || error.message.code) +
-              ' - ' +
-              (error.message.Message || error.message.message)
-        error.message = `${errorMessage} (CODE: ${error.statusCode})`
+        // const errorMessage =
+        //   typeof error.message.valueOf() === 'string'
+        //     ? error.message
+        //     : `${error.message.Code || error.message.code} - ${error.message
+        //         .Message || error.message.message}`
+        error.message = `${error.message} (CODE: ${error.statusCode})`
       }
 
       return error.message
     }
 
-    return error
+    return JSON.stringify(error)
   }
 
   protected validateCredentials(
     credentials: msRestAzure.ApplicationTokenCredentials
-  ) {
+  ): void {
     if (!credentials) {
       throw new Error("'credentials' cannot be null.")
     }

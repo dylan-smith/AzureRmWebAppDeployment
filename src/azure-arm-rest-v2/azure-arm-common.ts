@@ -35,13 +35,13 @@ export class ApplicationTokenCredentials {
   private accessToken?: string
   private certFilePath?: string
   private isADFSEnabled: boolean
-  public baseUrl: string
-  public authorityUrl: string
-  public activeDirectoryResourceId: string
-  public isAzureStackEnvironment: boolean
-  public scheme: number
-  public msiClientId?: string
-  private token_deferred?: Q.Promise<string>
+  baseUrl: string
+  authorityUrl: string
+  activeDirectoryResourceId: string
+  isAzureStackEnvironment: boolean
+  scheme: number
+  msiClientId?: string
+  private tokenDeferred?: Promise<string>
 
   constructor(
     clientId: string,
@@ -56,29 +56,29 @@ export class ApplicationTokenCredentials {
     authType?: string,
     certFilePath?: string,
     isADFSEnabled?: boolean,
-    access_token?: string
+    accessToken?: string
   ) {
-    if (!Boolean(domain) || typeof domain.valueOf() !== 'string') {
+    if (!domain || typeof domain.valueOf() !== 'string') {
       throw new Error('domain must be a non empty string.')
     }
 
     if (!scheme || scheme === 'ServicePrincipal') {
-      if (!Boolean(clientId) || typeof clientId.valueOf() !== 'string') {
+      if (!clientId || typeof clientId.valueOf() !== 'string') {
         throw new Error('clientId must be a non empty string.')
       }
 
       if (
         !authType ||
-        authType ==
+        authType ===
           constants.AzureServicePrinicipalAuthentications.servicePrincipalKey
       ) {
-        if (!Boolean(secret) || typeof secret.valueOf() !== 'string') {
+        if (!secret || typeof secret.valueOf() !== 'string') {
           throw new Error('secret must be a non empty string.')
         }
       } else {
         if (
           !certFilePath ||
-          !Boolean(certFilePath) ||
+          !certFilePath ||
           typeof certFilePath.valueOf() !== 'string'
         ) {
           throw new Error('cert file path must be provided')
@@ -86,23 +86,23 @@ export class ApplicationTokenCredentials {
       }
     }
 
-    if (!Boolean(baseUrl) || typeof baseUrl.valueOf() !== 'string') {
+    if (!baseUrl || typeof baseUrl.valueOf() !== 'string') {
       throw new Error('arm Url must be a non empty string.')
     }
 
-    if (!Boolean(authorityUrl) || typeof authorityUrl.valueOf() !== 'string') {
+    if (!authorityUrl || typeof authorityUrl.valueOf() !== 'string') {
       throw new Error('authority must be a non empty string.')
     }
 
     if (
-      !Boolean(activeDirectoryResourceId) ||
+      !activeDirectoryResourceId ||
       typeof activeDirectoryResourceId.valueOf() !== 'string'
     ) {
       throw new Error('Active directory resource url cannot be empty.')
     }
 
     if (
-      !Boolean(isAzureStackEnvironment) ||
+      !isAzureStackEnvironment ||
       typeof isAzureStackEnvironment.valueOf() != 'boolean'
     ) {
       isAzureStackEnvironment = false
@@ -119,12 +119,12 @@ export class ApplicationTokenCredentials {
       ? AzureModels.Scheme[scheme as keyof typeof AzureModels.Scheme]
       : AzureModels.Scheme.SPN
     this.msiClientId = msiClientId
-    if (this.scheme == AzureModels.Scheme.SPN) {
+    if (this.scheme === AzureModels.Scheme.SPN) {
       this.authType = authType
         ? authType
         : constants.AzureServicePrinicipalAuthentications.servicePrincipalKey
       if (
-        this.authType ==
+        this.authType ===
         constants.AzureServicePrinicipalAuthentications.servicePrincipalKey
       ) {
         this.secret = secret
@@ -134,65 +134,61 @@ export class ApplicationTokenCredentials {
     }
 
     this.isADFSEnabled = isADFSEnabled || false
-    this.accessToken = access_token
+    this.accessToken = accessToken
   }
 
-  public getToken(force?: boolean): Q.Promise<string> {
+  async getToken(force?: boolean): Promise<string> {
     if (!!this.accessToken && !force) {
       core.debug(
         '==================== USING ENDPOINT PROVIDED ACCESS TOKEN ===================='
       )
-      let deferred = Q.defer<string>()
+      const deferred = Q.defer<string>()
       deferred.resolve(this.accessToken)
       return deferred.promise
     }
 
-    if (!this.token_deferred || force) {
+    if (!this.tokenDeferred || force) {
       if (this.scheme === AzureModels.Scheme.ManagedServiceIdentity) {
-        this.token_deferred = this._getMSIAuthorizationToken(0, 0)
+        this.tokenDeferred = this._getMSIAuthorizationToken(0, 0)
       } else {
-        this.token_deferred = this._getSPNAuthorizationToken()
+        this.tokenDeferred = this._getSPNAuthorizationToken()
       }
     }
 
-    return this.token_deferred
+    return this.tokenDeferred
   }
 
-  public getDomain(): string {
+  getDomain(): string {
     return this.domain
   }
 
-  public getClientId(): string {
+  getClientId(): string {
     return this.clientId
   }
 
-  private _getMSIAuthorizationToken(
+  private async _getMSIAuthorizationToken(
     retyCount: number,
     timeToWait: number
-  ): Q.Promise<string> {
-    var deferred = Q.defer<string>()
-    let webRequest = new webClient.WebRequest()
+  ): Promise<string> {
+    const deferred = Q.defer<string>()
+    const webRequest = new webClient.WebRequest()
     webRequest.method = 'GET'
-    let apiVersion = '2018-02-01'
+    const apiVersion = '2018-02-01'
     const retryLimit = 5
-    let msiClientId = this.msiClientId ? '&client_id=' + this.msiClientId : ''
-    webRequest.uri =
-      'http://169.254.169.254/metadata/identity/oauth2/token?api-version=' +
-      apiVersion +
-      '&resource=' +
-      this.baseUrl +
-      msiClientId
+    const msiClientId = this.msiClientId ? `&client_id=${this.msiClientId}` : ''
+    webRequest.uri = `http://169.254.169.254/metadata/identity/oauth2/token?api-version=${apiVersion}&resource=${this.baseUrl}${msiClientId}`
     webRequest.headers = {
       Metadata: true
     }
 
     webClient.sendRequest(webRequest).then(
       (response: webClient.WebResponse) => {
-        if (response.statusCode == 200) {
-          deferred.resolve(response.body.access_token)
-        } else if (response.statusCode == 429 || response.statusCode == 500) {
+        if (response.statusCode === 200 && response.body) {
+          const body = JSON.parse(response.body)
+          deferred.resolve(body.access_token)
+        } else if (response.statusCode === 429 || response.statusCode === 500) {
           if (retyCount < retryLimit) {
-            let waitedTime = 2000 + timeToWait * 2
+            const waitedTime = 2000 + timeToWait * 2
             retyCount += 1
             setTimeout(() => {
               deferred.resolve(
@@ -226,9 +222,9 @@ export class ApplicationTokenCredentials {
     return deferred.promise
   }
 
-  private _getSPNAuthorizationToken(): Q.Promise<string> {
+  private async _getSPNAuthorizationToken(): Promise<string> {
     if (
-      this.authType ==
+      this.authType ===
       constants.AzureServicePrinicipalAuthentications.servicePrincipalKey
     ) {
       return this._getSPNAuthorizationTokenFromKey()
@@ -237,24 +233,26 @@ export class ApplicationTokenCredentials {
     return this._getSPNAuthorizationTokenFromCertificate()
   }
 
-  private _getSPNAuthorizationTokenFromCertificate(): Q.Promise<string> {
-    var deferred = Q.defer<string>()
-    let webRequest = new webClient.WebRequest()
+  private async _getSPNAuthorizationTokenFromCertificate(): Promise<string> {
+    const deferred = Q.defer<string>()
+    const webRequest = new webClient.WebRequest()
     webRequest.method = 'POST'
-    webRequest.uri =
-      this.authorityUrl +
-      (this.isADFSEnabled ? '' : this.domain) +
-      '/oauth2/token/'
+    webRequest.uri = `${this.authorityUrl +
+      (this.isADFSEnabled ? '' : this.domain)}/oauth2/token/`
     webRequest.body = querystring.stringify({
       resource: this.activeDirectoryResourceId,
+      // eslint-disable-next-line @typescript-eslint/camelcase
       client_id: this.clientId,
+      // eslint-disable-next-line @typescript-eslint/camelcase
       grant_type: 'client_credentials',
+      // eslint-disable-next-line @typescript-eslint/camelcase
       client_assertion: this._getSPNCertificateAuthorizationToken(),
+      // eslint-disable-next-line @typescript-eslint/camelcase
       client_assertion_type:
         'urn:ietf:params:oauth:client-assertion-type:jwt-bearer'
     })
 
-    let webRequestOptions: webClient.WebRequestOptions = {
+    const webRequestOptions: webClient.WebRequestOptions = {
       retriableErrorCodes: undefined,
       retriableStatusCodes: [400, 408, 409, 500, 502, 503, 504],
       retryCount: undefined,
@@ -264,9 +262,10 @@ export class ApplicationTokenCredentials {
 
     webClient.sendRequest(webRequest, webRequestOptions).then(
       (response: webClient.WebResponse) => {
-        if (response.statusCode == 200) {
-          deferred.resolve(response.body.access_token)
-        } else if ([400, 401, 403].indexOf(response.statusCode || 0) != -1) {
+        if (response.statusCode === 200 && response.body) {
+          const body = JSON.parse(response.body)
+          deferred.resolve(body.access_token)
+        } else if ([400, 401, 403].includes(response.statusCode || 0)) {
           deferred.reject(
             'Could not fetch access token for Azure. Verify if the Service Principal used is valid and not expired. For more information refer https://aka.ms/azureappservicedeploytsg'
           )
@@ -287,22 +286,25 @@ export class ApplicationTokenCredentials {
     return deferred.promise
   }
 
-  private _getSPNAuthorizationTokenFromKey(): Q.Promise<string> {
-    var deferred = Q.defer<string>()
-    let webRequest = new webClient.WebRequest()
+  private async _getSPNAuthorizationTokenFromKey(): Promise<string> {
+    const deferred = Q.defer<string>()
+    const webRequest = new webClient.WebRequest()
     webRequest.method = 'POST'
-    webRequest.uri = this.authorityUrl + this.domain + '/oauth2/token/'
+    webRequest.uri = `${this.authorityUrl + this.domain}/oauth2/token/`
     webRequest.body = querystring.stringify({
       resource: this.activeDirectoryResourceId,
+      // eslint-disable-next-line @typescript-eslint/camelcase
       client_id: this.clientId,
+      // eslint-disable-next-line @typescript-eslint/camelcase
       grant_type: 'client_credentials',
+      // eslint-disable-next-line @typescript-eslint/camelcase
       client_secret: this.secret
     })
     webRequest.headers = {
       'Content-Type': 'application/x-www-form-urlencoded; charset=utf-8'
     }
 
-    let webRequestOptions: webClient.WebRequestOptions = {
+    const webRequestOptions: webClient.WebRequestOptions = {
       retriableErrorCodes: undefined,
       retriableStatusCodes: [400, 403, 408, 409, 500, 502, 503, 504],
       retryCount: undefined,
@@ -312,9 +314,10 @@ export class ApplicationTokenCredentials {
 
     webClient.sendRequest(webRequest, webRequestOptions).then(
       (response: webClient.WebResponse) => {
-        if (response.statusCode == 200) {
-          deferred.resolve(response.body.access_token)
-        } else if ([400, 401, 403].indexOf(response.statusCode || 0) != -1) {
+        if (response.statusCode === 200 && response.body) {
+          const body = JSON.parse(response.body)
+          deferred.resolve(body.access_token)
+        } else if ([400, 401, 403].includes(response.statusCode || 0)) {
           deferred.reject(
             'Could not fetch access token for Azure. Verify if the Service Principal used is valid and not expired. For more information refer https://aka.ms/azureappservicedeploytsg'
           )
@@ -337,10 +340,10 @@ export class ApplicationTokenCredentials {
   }
 
   private _getSPNCertificateAuthorizationToken(): string {
-    var openSSLPath = os.type().match(/^Win/)
+    const openSSLPath = os.type().match(/^Win/)
       ? tl.which(path.join(__dirname, 'openssl', 'openssl'))
       : tl.which('openssl')
-    var openSSLArgsArray = [
+    const openSSLArgsArray = [
       'x509',
       '-noout',
       '-in',
@@ -348,22 +351,22 @@ export class ApplicationTokenCredentials {
       '-fingerprint'
     ]
 
-    var pemExecutionResult = tl.execSync(openSSLPath, openSSLArgsArray)
-    var additionalHeaders: IJWTHeaders = {
+    const pemExecutionResult = tl.execSync(openSSLPath, openSSLArgsArray)
+    const additionalHeaders: IJWTHeaders = {
       alg: 'RS256',
       typ: 'JWT'
     }
 
-    if (pemExecutionResult.code == 0) {
+    if (pemExecutionResult.code === 0) {
       core.debug('FINGERPRINT CREATION SUCCESSFUL')
-      let shaFingerprint = pemExecutionResult.stdout
-      let shaFingerPrintHashCode = shaFingerprint
+      const shaFingerprint = pemExecutionResult.stdout
+      const shaFingerPrintHashCode = shaFingerprint
         .split('=')[1]
         .replace(new RegExp(':', 'g'), '')
-      let shaSegments = shaFingerPrintHashCode.match(/\w{2}/g)
+      const shaSegments = shaFingerPrintHashCode.match(/\w{2}/g)
 
       if (shaSegments) {
-        let fingerPrintHashBase64: string = Buffer.from(
+        const fingerPrintHashBase64: string = Buffer.from(
           shaSegments
             .map(function(a) {
               return String.fromCharCode(parseInt(a, 16))
@@ -374,7 +377,7 @@ export class ApplicationTokenCredentials {
         additionalHeaders['x5t'] = fingerPrintHashBase64
       }
     } else {
-      console.log(pemExecutionResult)
+      core.info(pemExecutionResult?.code?.toString() || '')
       throw new Error(pemExecutionResult.stderr)
     }
 
@@ -396,21 +399,21 @@ function getJWT(
   pemFilePath: string,
   additionalHeaders: IJWTHeaders,
   isADFSEnabled: boolean
-) {
-  var pemFileContent = fs.readFileSync(pemFilePath)
-  var jwtObject = {
+): string {
+  const pemFileContent = fs.readFileSync(pemFilePath)
+  const jwtObject = {
     aud: `${url}/${!isADFSEnabled ? tenantId : ''}/oauth2/token`.replace(
       /([^:]\/)\/+/g,
       '$1'
     ),
     iss: clientId,
     sub: clientId,
-    jti: '' + Math.random(),
+    jti: Math.random(),
     nbf: Math.floor(Date.now() / 1000) - 1000,
     exp: Math.floor(Date.now() / 1000) + 8640000
   }
 
-  var token = jwt.sign(jwtObject, pemFileContent, {
+  const token = jwt.sign(jwtObject, pemFileContent, {
     algorithm: 'RS256',
     header: additionalHeaders
   })

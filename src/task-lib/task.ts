@@ -3,7 +3,7 @@ import * as im from './internal'
 import * as fs from 'fs'
 import * as util from 'util'
 import * as path from 'path'
-import * as minimatch from 'minimatch'
+import minimatch from 'minimatch'
 import * as childProcess from 'child_process'
 import * as shell from 'shelljs'
 import * as trm from './toolrunner'
@@ -583,17 +583,17 @@ export enum Platform {
  * Output will be streamed to the live console.
  * Returns promise with return code
  *
- * @param     tool     path to tool to exec
+ * @param     toolPath     path to tool to exec
  * @param     args     an arg string or array of args
  * @param     options  optional exec options.  See IExecOptions
  * @returns   number
  */
 export async function exec(
-  tool: string,
+  toolPath: string,
   args: string | string[],
   options?: trm.IExecOptions
 ): Promise<number> {
-  const tr: trm.ToolRunner = createToolRunner(tool)
+  const tr: trm.ToolRunner = createToolRunner(toolPath)
   tr.on('debug', (data: string) => {
     core.debug(data)
   })
@@ -614,8 +614,8 @@ export async function exec(
  * @param     tool     path to tool to exec
  * @returns   ToolRunner
  */
-export function tool(toolPath: string) {
-  let tr: trm.ToolRunner = new trm.ToolRunner(toolPath)
+export function tool(toolPath: string): trm.ToolRunner {
+  const tr: trm.ToolRunner = new trm.ToolRunner(toolPath)
   tr.on('debug', (message: string) => {
     core.debug(message)
   })
@@ -639,7 +639,7 @@ export function execSync(
   args: string | string[],
   options?: trm.IExecSyncOptions
 ): trm.IExecSyncResult {
-  let tr: trm.ToolRunner = tool(toolPath)
+  const tr: trm.ToolRunner = tool(toolPath)
   tr.on('debug', (data: string) => {
     core.debug(data)
   })
@@ -658,11 +658,11 @@ export function execSync(
 /**
  * Convenience factory to create a ToolRunner.
  *
- * @param     tool     path to tool to exec
+ * @param     toolPath     path to tool to exec
  * @returns   ToolRunner
  */
-export function createToolRunner(tool: string): trm.ToolRunner {
-  const tr: trm.ToolRunner = new trm.ToolRunner(tool)
+export function createToolRunner(toolPath: string): trm.ToolRunner {
+  const tr: trm.ToolRunner = new trm.ToolRunner(toolPath)
   tr.on('debug', (message: string) => {
     core.debug(message)
   })

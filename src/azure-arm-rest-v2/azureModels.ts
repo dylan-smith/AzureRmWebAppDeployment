@@ -239,7 +239,7 @@ export interface AzureAppServiceConfigurationDetails {
   kind?: string
   location: string
   tags: string
-  properties?: {[key: string]: any}
+  properties?: {[key: string]: string}
 }
 
 // export interface WebJob {

@@ -1,8 +1,8 @@
 import * as msRestAzure from './azure-arm-common'
-import {AzureServiceClientBase, AzureError} from './AzureServiceClientBase'
+import {AzureServiceClientBase} from './AzureServiceClientBase'
 
 export class ServiceClient extends AzureServiceClientBase {
-  public subscriptionId: string
+  subscriptionId: string
 
   constructor(
     credentials: msRestAzure.ApplicationTokenCredentials,
@@ -14,7 +14,7 @@ export class ServiceClient extends AzureServiceClientBase {
     this.subscriptionId = subscriptionId
   }
 
-  public getRequestUri(
+  getRequestUri(
     uriFormat: string,
     parameters: {[key: string]: string},
     queryParameters?: string[],
@@ -30,7 +30,7 @@ export class ServiceClient extends AzureServiceClientBase {
     )
   }
 
-  public isValidResourceGroupName(resourceGroupName: string) {
+  isValidResourceGroupName(resourceGroupName: string): void {
     if (
       !resourceGroupName === null ||
       resourceGroupName === undefined ||
@@ -51,6 +51,7 @@ export class ServiceClient extends AzureServiceClientBase {
           '"resourceGroupName" should satisfy the constraint - "MinLength": 1'
         )
       }
+      // eslint-disable-next-line no-useless-escape
       if (resourceGroupName.match(/^[-\w\._\(\)]+$/) === null) {
         throw new Error(
           '"resourceGroupName" should satisfy the constraint - "Pattern": /^[-\\w\\._\\(\\)]+$/'
@@ -59,7 +60,7 @@ export class ServiceClient extends AzureServiceClientBase {
     }
   }
 
-  protected validateInputs(subscriptionId: string) {
+  protected validateInputs(subscriptionId: string): void {
     if (!subscriptionId) {
       throw new Error("'subscriptionId' cannot be null.")
     }

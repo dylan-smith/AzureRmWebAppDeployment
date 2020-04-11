@@ -9,12 +9,13 @@ import * as httpClient from 'typed-rest-client/HttpClient'
 import * as httpInterfaces from 'typed-rest-client/Interfaces'
 import * as util from 'util'
 import * as core from '@actions/core'
+import {IncomingHttpHeaders} from 'http'
 
-let proxyUrl: string | undefined = tl.getVariable('agent.proxyurl')
-var requestOptions: httpInterfaces.IRequestOptions = proxyUrl
+const proxyUrl: string | undefined = tl.getVariable('agent.proxyurl')
+const requestOptions: httpInterfaces.IRequestOptions = proxyUrl
   ? {
       proxy: {
-        proxyUrl: proxyUrl,
+        proxyUrl,
         proxyUsername: tl.getVariable('agent.proxyusername'),
         proxyPassword: tl.getVariable('agent.proxypassword'),
         proxyBypassHosts: tl.getVariable('agent.proxybypasslist')
@@ -24,39 +25,39 @@ var requestOptions: httpInterfaces.IRequestOptions = proxyUrl
     }
   : {}
 
-let ignoreSslErrors: string =
+const ignoreSslErrors: string =
   tl.getVariable('VSTS_ARM_REST_IGNORE_SSL_ERRORS') || ''
 if (ignoreSslErrors) {
   requestOptions.ignoreSslError = ignoreSslErrors.toLowerCase() === 'true'
 }
 
-var httpCallbackClient = new httpClient.HttpClient(
+const httpCallbackClient = new httpClient.HttpClient(
   tl.getVariable('AZURE_HTTP_USER_AGENT'),
   undefined,
   requestOptions
 )
 
 export class WebRequest {
-  public method?: string
-  public uri?: string
+  method?: string
+  uri?: string
   // body can be string or ReadableStream
-  public body?: string | NodeJS.ReadableStream
-  public headers: any
+  body?: string | NodeJS.ReadableStream
+  headers?: httpInterfaces.IHeaders
 }
 
 export class WebResponse {
-  public statusCode?: number
-  public statusMessage?: string
-  public headers: any
-  public body: any
+  statusCode?: number
+  statusMessage?: string
+  headers?: IncomingHttpHeaders
+  body?: string
 }
 
 export class WebRequestOptions {
-  public retriableErrorCodes?: string[]
-  public retryCount?: number
-  public retryIntervalInSeconds?: number
-  public retriableStatusCodes?: number[]
-  public retryRequestTimedout?: boolean
+  retriableErrorCodes?: string[]
+  retryCount?: number
+  retryIntervalInSeconds?: number
+  retriableStatusCodes?: number[]
+  retryRequestTimedout?: boolean
 }
 
 export async function sendRequest(
@@ -64,12 +65,12 @@ export async function sendRequest(
   options?: WebRequestOptions
 ): Promise<WebResponse> {
   let i = 0
-  let retryCount = options && options.retryCount ? options.retryCount : 5
-  let retryIntervalInSeconds =
+  const retryCount = options && options.retryCount ? options.retryCount : 5
+  const retryIntervalInSeconds =
     options && options.retryIntervalInSeconds
       ? options.retryIntervalInSeconds
       : 2
-  let retriableErrorCodes =
+  const retriableErrorCodes =
     options && options.retriableErrorCodes
       ? options.retriableErrorCodes
       : [
@@ -82,22 +83,22 @@ export async function sendRequest(
           'EPIPE',
           'EA_AGAIN'
         ]
-  let retriableStatusCodes =
+  const retriableStatusCodes =
     options && options.retriableStatusCodes
       ? options.retriableStatusCodes
       : [408, 409, 500, 502, 503, 504]
   let timeToWait: number = retryIntervalInSeconds
-  while (true) {
+  for (;;) {
     try {
       // path is not a property defined in the TypeScript type for NodeJS.ReadableStream so commenting this bit out
       // if (request.body && typeof (request.body) !== 'string' && !request.body["readable"]) {
       //     request.body = fs.createReadStream(request.body["path"]);
       // }
 
-      let response: WebResponse = await sendRequestInternal(request)
+      const response: WebResponse = await sendRequestInternal(request)
       if (
         response.statusCode &&
-        retriableStatusCodes.indexOf(response.statusCode) != -1 &&
+        retriableStatusCodes.includes(response.statusCode) &&
         ++i < retryCount
       ) {
         core.debug(
@@ -115,7 +116,7 @@ export async function sendRequest(
 
       return response
     } catch (error) {
-      if (retriableErrorCodes.indexOf(error.code) != -1 && ++i < retryCount) {
+      if (retriableErrorCodes.includes(error.code) && ++i < retryCount) {
         core.debug(
           util.format(
             'Encountered a retriable error:%s. Message: %s.',
@@ -137,19 +138,19 @@ export async function sendRequest(
   }
 }
 
-export function sleepFor(sleepDurationInSeconds: number): Promise<any> {
-  return new Promise((resolve, reject) => {
+export async function sleepFor(sleepDurationInSeconds: number): Promise<void> {
+  return new Promise(resolve => {
     setTimeout(resolve, sleepDurationInSeconds * 1000)
   })
 }
 
 async function sendRequestInternal(request: WebRequest): Promise<WebResponse> {
   core.debug(util.format('[%s]%s', request.method, request.uri))
-  var response: httpClient.HttpClientResponse = await httpCallbackClient.request(
+  const response: httpClient.HttpClientResponse = await httpCallbackClient.request(
     request.method || '',
     request.uri || '',
     request.body || '',
-    request.headers
+    request.headers || {}
   )
   return await toWebResponse(response)
 }
@@ -157,21 +158,12 @@ async function sendRequestInternal(request: WebRequest): Promise<WebResponse> {
 async function toWebResponse(
   response: httpClient.HttpClientResponse
 ): Promise<WebResponse> {
-  var res = new WebResponse()
+  const res = new WebResponse()
   if (response) {
     res.statusCode = response.message.statusCode
     res.statusMessage = response.message.statusMessage
     res.headers = response.message.headers
-    var body = await response.readBody()
-    if (body) {
-      try {
-        res.body = JSON.parse(body)
-      } catch (error) {
-        core.debug('Could not parse response: ' + JSON.stringify(error))
-        core.debug('Response: ' + JSON.stringify(res.body))
-        res.body = body
-      }
-    }
+    res.body = await response.readBody()
   }
 
   return res

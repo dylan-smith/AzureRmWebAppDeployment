@@ -11,6 +11,25 @@ import * as core from '@actions/core'
 // import * as tl from '../task-lib/task'
 import * as webClient from '../azure-arm-rest-v2/webClient'
 
+interface IPublishingProfile {
+  publishData: IPublishingProfilePublishData
+}
+
+interface IPublishingProfilePublishData {
+  publishProfile: IPublishingProfilePublishProfile[]
+}
+
+interface IPublishingProfilePublishProfile {
+  $: IPublishProfileElements
+}
+
+interface IPublishProfileElements {
+  profileName: string
+  publishMethod: string
+  publishUrl: string
+  destinationAppUrl: string
+}
+
 export class AzureAppServiceUtility {
   private _appService: AzureAppService
   constructor(appService: AzureAppService) {
@@ -64,45 +83,45 @@ export class AzureAppServiceUtility {
   //     }
   // }
 
-  public async getWebDeployPublishingProfile(): Promise<any> {
-    var publishingProfile = await this._appService.getPublishingProfileWithSecrets()
-    var defer = Q.defer<any>()
-    parseString(publishingProfile, (error, result) => {
-      if (!!error) {
-        defer.reject(error)
-      }
-      var publishProfile =
-        result && result.publishData && result.publishData.publishProfile
-          ? result.publishData.publishProfile
-          : null
-      if (publishProfile) {
-        for (var index in publishProfile) {
-          if (
-            publishProfile[index].$ &&
-            publishProfile[index].$.publishMethod === 'MSDeploy'
-          ) {
-            defer.resolve(result.publishData.publishProfile[index].$)
+  async getWebDeployPublishingProfile(): Promise<IPublishProfileElements> {
+    const publishingProfile = await this._appService.getPublishingProfileWithSecrets()
+    const defer = Q.defer<IPublishProfileElements>()
+    parseString(
+      publishingProfile,
+      (error: Error, result: IPublishingProfile) => {
+        if (error) {
+          defer.reject(error)
+        }
+        const publishProfile =
+          result && result.publishData && result.publishData.publishProfile
+            ? result.publishData.publishProfile
+            : null
+        if (publishProfile) {
+          for (const item of publishProfile) {
+            if (item.$ && item.$.publishMethod === 'MSDeploy') {
+              defer.resolve(item.$)
+            }
           }
         }
-      }
 
-      defer.reject('Error : No such deploying method exists')
-    })
+        defer.reject('Error : No such deploying method exists')
+      }
+    )
 
     return defer.promise
   }
 
-  public async getApplicationURL(virtualApplication?: string): Promise<string> {
-    let webDeployProfile: any = await this.getWebDeployPublishingProfile()
+  async getApplicationURL(virtualApplication?: string): Promise<string> {
+    const webDeployProfile: IPublishProfileElements = await this.getWebDeployPublishingProfile()
     return (
-      (await webDeployProfile.destinationAppUrl) +
+      webDeployProfile.destinationAppUrl +
       (virtualApplication ? `/${virtualApplication}` : '')
     )
   }
 
-  public async pingApplication(): Promise<void> {
+  async pingApplication(): Promise<void> {
     try {
-      var applicationUrl: string = await this.getApplicationURL()
+      const applicationUrl: string = await this.getApplicationURL()
 
       if (!applicationUrl) {
         core.debug('Application Url not found.')
@@ -114,23 +133,26 @@ export class AzureAppServiceUtility {
     }
   }
 
-  public static async pingApplication(applicationUrl: string) {
+  static async pingApplication(applicationUrl: string): Promise<void> {
     if (!applicationUrl) {
       core.debug('Application Url empty.')
       return
     }
     try {
-      var webRequest = new webClient.WebRequest()
+      const webRequest = new webClient.WebRequest()
       webRequest.method = 'GET'
       webRequest.uri = applicationUrl
-      let webRequestOptions: webClient.WebRequestOptions = {
+      const webRequestOptions: webClient.WebRequestOptions = {
         retriableErrorCodes: [],
         retriableStatusCodes: [],
         retryCount: 1,
         retryIntervalInSeconds: 5,
         retryRequestTimedout: true
       }
-      var response = await webClient.sendRequest(webRequest, webRequestOptions)
+      const response = await webClient.sendRequest(
+        webRequest,
+        webRequestOptions
+      )
       core.debug(
         `App Service status Code: '${response.statusCode}'. Status Message: '${response.statusMessage}'`
       )
