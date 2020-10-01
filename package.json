@@ -28,7 +28,7 @@
   },
   "homepage": "https://github.com/dylan-smith/AzureRmWebAppDeployment#readme",
   "dependencies": {
-    "@actions/core": "^1.2.3",
+    "@actions/core": "^1.2.6",
     "archiver": "^3.1.1",
     "decompress-zip": "^0.2.2",
     "jsonwebtoken": "^8.5.1",
