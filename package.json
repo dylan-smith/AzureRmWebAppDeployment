@@ -35,7 +35,7 @@
     "minimatch": "^3.0.4",
     "q": "^1.5.1",
     "querystring": "^0.2.0",
-    "shelljs": "^0.8.3",
+    "shelljs": "^0.8.5",
     "typed-rest-client": "^1.7.2",
     "xml2js": "^0.4.23"
   },
